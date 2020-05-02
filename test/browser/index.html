@@ -231,7 +231,9 @@
 
     $('#reversible').text('' + instance.getIsReversible());
     $('#numDecompositions').text('' + instance.getNumDecompositions());
-    $('#progessionOrder').text(instance.getProgressionOrder());
+
+    const progressionOrders = ['LRCP', 'RLCP', 'RPCL', 'PCRL', 'CPRL'];
+    $('#progessionOrder').text(progressionOrders[instance.getProgressionOrder()]);
 
 
     // Display Image
