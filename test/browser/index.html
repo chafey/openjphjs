@@ -9,7 +9,7 @@
 <body>
 <div class="container">
     <div class="page-header">
-        <h1>HTJ2K/HPH Decoding with WebAssembly</h1>
+        <h1>HTJ2K/JPH Decoding with WebAssembly</h1>
         <p class="lead">
           Select an image or drag and drop a HTJ2K/JPH file.  Files dropped here remain local in your browser, they are not uploaded anywhere.
       </p>
@@ -18,7 +18,7 @@
     <div class="row">
       <select id="imageSelector">
         <option value="../../extern/OpenJPH/subprojects/js/html/test.j2c" selected>Lena</option>
-        <option value="../../test/node/encoded.j2c">CT2</option>
+        <option value="../../test/fixtures/j2c/CT2.j2c">CT2</option>
         
     </select>
 
@@ -46,7 +46,7 @@
     </div>
     <div class="row">
         <div class="col-md-4">Reversible: <span id="reversible"></span></div>
-        <div class="col-md-4">Number Decompositions: <span id="numDecompositions"></span></div>
+        <div class="col-md-4">Decompositions: <span id="numDecompositions"></span></div>
         <div class="col-md-4">Progression Order: <span id="progessionOrder"></span></div>
       </div>
     <div class="row">
@@ -57,9 +57,7 @@
 </body>
 
 <script>
-
-  let encodedJPEGLSBitStream = undefined;
-
+  let encodedBitStream = undefined;
 
   function getMinMax(frameInfo, pixelData) {
     const numPixels = frameInfo.width * frameInfo.height * frameInfo.componentCount;
@@ -87,7 +85,6 @@
       return decodedBuffer;
     }
   }
-
 
   function colorToCanvas(frameInfo, pixelData, imageData, interleaveMode) {
     let outOffset = 0;
@@ -201,13 +198,13 @@
   }
 
   function decode() {
-    $('#encodedSize').text('' + encodedJPEGLSBitStream.length.toLocaleString() + ' bytes');
+    $('#encodedSize').text('' + encodedBitStream.length.toLocaleString() + ' bytes');
 
     // Setup
-    let instance = new Module.OpenJPHDecoder();
-    const encodedBuffer = instance.getEncodedBuffer(encodedJPEGLSBitStream.length);
+    let instance = new Module.HTJ2KDecoder();
+    const encodedBuffer = instance.getEncodedBuffer(encodedBitStream.length);
     let begin = performance.now(); // performance.now() returns value in milliseconds
-    encodedBuffer.set(encodedJPEGLSBitStream);
+    encodedBuffer.set(encodedBitStream);
     let end = performance.now();
 
     // Decode
@@ -218,28 +215,21 @@
 
     const frameInfo = instance.getFrameInfo();
     //console.log(frameInfo);
-    //const interleaveMode = instance.getInterleaveMode();
-    // /const nearLossless = instance.getNearLossless();
 
     // Display image properties
     $('#width').text(''+frameInfo.width);
     $('#height').text(''+frameInfo.height);
     $('#bitsPerSample').text(''+frameInfo.bitsPerSample);
     $('#componentCount').text(''+frameInfo.componentCount);
-    $('#signed').text(''+ ((frameInfo.isSigned === 0) ? 'false' : 'true'));
-    //$('#nearLossless').text(''+nearLossless);
-
+    $('#signed').text(''+ frameInfo.isSigned);
     $('#reversible').text('' + instance.getIsReversible());
     $('#numDecompositions').text('' + instance.getNumDecompositions());
-
-    const progressionOrders = ['LRCP', 'RLCP', 'RPCL', 'PCRL', 'CPRL'];
-    $('#progessionOrder').text(progressionOrders[instance.getProgressionOrder()]);
-
+    $('#progessionOrder').text(['LRCP', 'RLCP', 'RPCL', 'PCRL', 'CPRL'][instance.getProgressionOrder()]);
 
     // Display Image
     var decodedBuffer = instance.getDecodedBuffer();
     $('#decodedSize').text(''+decodedBuffer.length.toLocaleString() + " bytes");
-    $('#compressionRatio').text('' + (decodedBuffer.length /encodedJPEGLSBitStream.length).toFixed(2) + ":1");
+    $('#compressionRatio').text('' + (decodedBuffer.length /encodedBitStream.length).toFixed(2) + ":1");
     display(frameInfo, decodedBuffer, 2);
 
     // Free up memory
@@ -253,7 +243,7 @@
     })
     .then((arrayBuffer) => {
       try {
-        encodedJPEGLSBitStream = new Uint8Array(arrayBuffer);
+        encodedBitStream = new Uint8Array(arrayBuffer);
         decode();
       }
       catch(ex) {
@@ -286,7 +276,7 @@
 
   Module.onRuntimeInitialized = async _ => {
     load('../../extern/OpenJPH/subprojects/js/html/test.j2c');
-    //load('../../test/node/encoded.j2c');
+    //load('../../test/fixtures/j2c/CT2.j2c');
 
     $('#imageSelector').change(function(e) {
       reset();
@@ -307,7 +297,7 @@
       var fileReader = new FileReader();
       fileReader.onload = function (e) {
           var fileAsArrayBuffer = e.target.result;
-          encodedJPEGLSBitStream = new Uint8Array(fileAsArrayBuffer);
+          encodedBitStream = new Uint8Array(fileAsArrayBuffer);
           reset();
           try {
             decode();

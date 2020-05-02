@@ -19,12 +19,12 @@
 /// <summary>
 /// JavaScript API for decoding HTJ2K bistreams with OpenJPH
 /// </summary>
-class OpenJPHDecoder {
+class HTJ2KDecoder {
   public: 
   /// <summary>
   /// Constructor for decoding a HTJ2K image from JavaScript.
   /// </summary>
-  OpenJPHDecoder() :
+  HTJ2KDecoder() :
     numDecompositions_(0),
     isReversible_(false),
     progressionOrder_(0)

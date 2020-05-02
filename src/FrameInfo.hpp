@@ -25,7 +25,7 @@ struct FrameInfo {
     uint8_t componentCount;
 
     /// <summary>
-    /// 1 if signed, 0 if unsigned
+    /// true if signed, false if unsigned
     /// </summary>
-    uint8_t isSigned;
+    bool isSigned;
 };

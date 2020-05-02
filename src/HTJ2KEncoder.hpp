@@ -19,13 +19,17 @@
 /// <summary>
 /// JavaScript API for encoding images to HTJ2K bitstreams with OpenJPH
 /// </summary>
-class OpenJPHEncoder {
+class HTJ2KEncoder {
   public: 
   /// <summary>
   /// Constructor for encoding a HTJ2K image from JavaScript.  
   /// </summary>
-  OpenJPHEncoder() :
-    numDecompositions_(5) {
+  HTJ2KEncoder() :
+    decompositions_(5),
+    lossless_(true),
+    quantizationStep_(-1.0),
+    progressionOrder_(2) // RPCL
+  {
   }
 
   /// <summary>
@@ -62,6 +66,35 @@ class OpenJPHEncoder {
   }
 
   /// <summary>
+  /// Sets the number of wavelet decompositions
+  /// </summary>
+  void setDecompositions(size_t decompositions) {
+    decompositions_ = decompositions;
+  }
+
+  /// <summary>
+  /// Sets the quality level for the image.  If lossless is false then
+  /// quantizationStep controls the lossy quantization applied.  quantizationStep
+  /// is ignored if lossless is true
+  /// </summary>
+  void setQuality(bool lossless, float quantizationStep) {
+    lossless_ = lossless;
+    quantizationStep_ = quantizationStep;
+  }
+
+  /// <summary>
+  /// Sets the progression order 
+  /// 0 = LRCP
+  /// 1 = RLCP
+  /// 2 = RPCL
+  /// 3 = PCRL
+  /// 4 = CPRL 
+  /// </summary>
+  void setprogressionOrder(size_t progressionOrder) {
+    progressionOrder_ = progressionOrder;
+  }
+
+  /// <summary>
   /// Executes an HTJ2K encode using the data in the source buffer.  The
   /// JavaScript code must copy the source image frame into the source
   /// buffer before calling this method.  See documentation on getSourceBytes()
@@ -71,6 +104,7 @@ class OpenJPHEncoder {
     ojph::mem_outfile mem_file;
     mem_file.open();
 
+    // Setup image size parameters
     ojph::codestream codestream;
     ojph::param_siz siz = codestream.access_siz();
     siz.set_image_extent(ojph::point(frameInfo_.width, frameInfo_.height));
@@ -82,29 +116,51 @@ class OpenJPHEncoder {
     siz.set_tile_size(ojph::size(0,0));
     siz.set_tile_offset(ojph::point(0,0));
 
+    // Setup encoding parameters
     ojph::param_cod cod = codestream.access_cod();
-    cod.set_num_decomposition(numDecompositions_);
+    cod.set_num_decomposition(decompositions_);
     cod.set_block_dims(64,64);
     //if (num_precints != -1)
     //    cod.set_precinct_size(num_precints, precinct_size);
-    cod.set_progression_order("RPCL");
+    const char* progOrders[] = {"LRCP", "RLCP", "RPCL", "PCRL", "CPRL"};
+    cod.set_progression_order(progOrders[progressionOrder_]);
     cod.set_color_transform(false);
-    cod.set_reversible(true);
-
+    cod.set_reversible(lossless_);
+    if(!lossless_) {
+      codestream.access_qcd().set_irrev_quant(quantizationStep_);
+    }
     codestream.write_headers(&mem_file);
+
+    // Encode the image
+    const size_t bytesPerPixel = frameInfo_.bitsPerSample / 8;
     int next_comp;
     ojph::line_buf* cur_line = codestream.exchange(NULL, next_comp);
     siz = codestream.access_siz();
     int height = siz.get_image_extent().y - siz.get_image_offset().y;
-    for (int i = 0; i < height; ++i)
+    for (size_t y = 0; y < height; y++)
     {
-        for (int c = 0; c < siz.get_num_components(); ++c)
+        for (size_t c = 0; c < siz.get_num_components(); c++)
         {
-            int* dp = cur_line->i32;
-            for(int x=0; x < frameInfo_.width; x++) {
-                *dp++ = ((signed short*)(decoded_.data()))[(i * frameInfo_.width) + x];
+          int* dp = cur_line->i32;
+          if(frameInfo_.bitsPerSample <= 8) {
+            uint8_t* pIn = (uint8_t*)(decoded_.data() + (y * frameInfo_.width * bytesPerPixel));
+            for(size_t x=0; x < frameInfo_.width; x++) {
+              *dp++ = *pIn++;
             }
-            cur_line = codestream.exchange(cur_line, next_comp);
+          } else {
+            if(frameInfo_.isSigned) {
+              int16_t* pIn = (int16_t*)(decoded_.data() + (y * frameInfo_.width * bytesPerPixel));
+              for(size_t x=0; x < frameInfo_.width; x++) {
+                *dp++ = *pIn++;
+              }
+            } else {
+              uint16_t* pIn = (uint16_t*)(decoded_.data() + (y * frameInfo_.width * bytesPerPixel));
+              for(size_t x=0; x < frameInfo_.width; x++) {
+                *dp++ = *pIn++;
+              }
+            }
+          }
+          cur_line = codestream.exchange(cur_line, next_comp);
         }
     }
     codestream.flush();
@@ -119,5 +175,8 @@ class OpenJPHEncoder {
     std::vector<uint8_t> decoded_;
     std::vector<uint8_t> encoded_;
     FrameInfo frameInfo_;
-    size_t numDecompositions_;
+    size_t decompositions_;
+    bool lossless_;
+    float quantizationStep_;
+    size_t progressionOrder_;
 };

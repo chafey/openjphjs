@@ -1,8 +1,8 @@
 // Copyright (c) Chris Hafey.
 // SPDX-License-Identifier: MIT
 
-#include "OpenJPHDecoder.hpp"
-#include "OpenJPHEncoder.hpp"
+#include "HTJ2KDecoder.hpp"
+#include "HTJ2KEncoder.hpp"
 
 #include <emscripten.h>
 #include <emscripten/bind.h>
@@ -19,24 +19,28 @@ EMSCRIPTEN_BINDINGS(FrameInfo) {
        ;
 }
 
-EMSCRIPTEN_BINDINGS(JpegLSDecoder) {
-  class_<OpenJPHDecoder>("OpenJPHDecoder")
+EMSCRIPTEN_BINDINGS(HTJ2KDecoder) {
+  class_<HTJ2KDecoder>("HTJ2KDecoder")
     .constructor<>()
-    .function("getEncodedBuffer", &OpenJPHDecoder::getEncodedBuffer)
-    .function("getDecodedBuffer", &OpenJPHDecoder::getDecodedBuffer)
-    .function("decode", &OpenJPHDecoder::decode)
-    .function("getFrameInfo", &OpenJPHDecoder::getFrameInfo)
-    .function("getNumDecompositions", &OpenJPHDecoder::getNumDecompositions)
-    .function("getIsReversible", &OpenJPHDecoder::getIsReversible)
-    .function("getProgressionOrder", &OpenJPHDecoder::getProgressionOrder)
+    .function("getEncodedBuffer", &HTJ2KDecoder::getEncodedBuffer)
+    .function("getDecodedBuffer", &HTJ2KDecoder::getDecodedBuffer)
+    .function("decode", &HTJ2KDecoder::decode)
+    .function("getFrameInfo", &HTJ2KDecoder::getFrameInfo)
+    .function("getNumDecompositions", &HTJ2KDecoder::getNumDecompositions)
+    .function("getIsReversible", &HTJ2KDecoder::getIsReversible)
+    .function("getProgressionOrder", &HTJ2KDecoder::getProgressionOrder)
    ;
 }
 
-EMSCRIPTEN_BINDINGS(OpenJPHEncoder) {
-  class_<OpenJPHEncoder>("OpenJPHEncoder")
+EMSCRIPTEN_BINDINGS(HTJ2KEncoder) {
+  class_<HTJ2KEncoder>("HTJ2KEncoder")
     .constructor<>()
-    .function("getDecodedBuffer", &OpenJPHEncoder::getDecodedBuffer)
-    .function("getEncodedBuffer", &OpenJPHEncoder::getEncodedBuffer)
-    .function("encode", &OpenJPHEncoder::encode)
+    .function("getDecodedBuffer", &HTJ2KEncoder::getDecodedBuffer)
+    .function("getEncodedBuffer", &HTJ2KEncoder::getEncodedBuffer)
+    .function("encode", &HTJ2KEncoder::encode)
+    .function("setDecompositions", &HTJ2KEncoder::setDecompositions)
+    .function("setQuality", &HTJ2KEncoder::setQuality)
+    .function("setDecompositions", &HTJ2KEncoder::setDecompositions)
+    .function("setDecompositions", &HTJ2KEncoder::setDecompositions)
    ;
 }

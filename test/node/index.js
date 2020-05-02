@@ -1,9 +1,9 @@
-let openjph = require('../../dist/openjphjs.js');
+let openjphjs = require('../../dist/openjphjs.js');
 const fs = require('fs')
 
 function decode(encodedImagePath, iterations = 1) {
   const encodedBitStream = fs.readFileSync(encodedImagePath);
-  const decoder = new openjph.OpenJPHDecoder();
+  const decoder = new openjphjs.HTJ2KDecoder();
   const encodedBuffer = decoder.getEncodedBuffer(encodedBitStream.length);
   encodedBuffer.set(encodedBitStream);
 
@@ -29,10 +29,10 @@ function decode(encodedImagePath, iterations = 1) {
 function encode(pathToUncompressedImageFrame, imageFrame, iterations = 1) {
     const uncompressedImageFrame = fs.readFileSync(pathToUncompressedImageFrame);
     console.log('uncompressedImageFrame.length:', uncompressedImageFrame.length)
-    const encoder = new openjph.OpenJPHEncoder();
+    const encoder = new openjphjs.HTJ2KEncoder();
     const decodedBytes = encoder.getDecodedBuffer(imageFrame);
     decodedBytes.set(uncompressedImageFrame);
-    //encoder.setNearLossless(0);
+    //encoder.setQuality(false, 0.001);
   
     const encodeBegin = process.hrtime();
     for(var i=0; i < iterations;i++) {
@@ -52,9 +52,9 @@ function encode(pathToUncompressedImageFrame, imageFrame, iterations = 1) {
     encoder.delete();
   }
 
-openjph.onRuntimeInitialized = async _ => {
-  decode('encoded.j2c');
+openjphjs.onRuntimeInitialized = async _ => {
+  decode('../fixtures/j2c/CT2.j2c');
   decode('../../extern/OpenJPH/subprojects/js/html/test.j2c');
 
-  encode('../fixtures/CT2.RAW', {width: 512, height: 512, bitsPerSample: 16, componentCount: 1, isSigned: true});
+  encode('../fixtures/raw/CT2.RAW', {width: 512, height: 512, bitsPerSample: 16, componentCount: 1, isSigned: true});
 }
