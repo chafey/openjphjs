@@ -32,7 +32,7 @@ if(NOT EXISTS "${PROJECT_SOURCE_DIR}/extern/OpenJPH/CMakeLists.txt")
 endif()
 
 option(OJPH_DISABLE_INTEL_SIMD "Disables the use of SIMD instructions and associated files" ON)
-option(BUILD_SHARED_LIBS "Shared Libraries" OFF)
+option(BUILD_SHARED_LIBS "" OFF)
 
 # add the external library
 add_subdirectory(extern/OpenJPH EXCLUDE_FROM_ALL)
