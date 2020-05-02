@@ -3,6 +3,9 @@
         "fstream": "cpp",
         "locale": "cpp",
         "*.tcc": "cpp",
-        "ios": "cpp"
+        "ios": "cpp",
+        "deque": "cpp",
+        "string": "cpp",
+        "vector": "cpp"
     }
 }

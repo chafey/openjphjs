@@ -24,7 +24,11 @@ class OpenJPHDecoder {
   /// <summary>
   /// Constructor for decoding a HTJ2K image from JavaScript.
   /// </summary>
-  OpenJPHDecoder() {
+  OpenJPHDecoder() :
+    numDecompositions_(0),
+    isReversible_(false),
+    progressionOrder_(0)
+  {
   }
 
   /// <summary>
@@ -64,6 +68,11 @@ class OpenJPHDecoder {
     frameInfo_.componentCount = siz.get_num_components();
     frameInfo_.bitsPerSample = siz.get_bit_depth(0);
     frameInfo_.isSigned = siz.is_signed(0);
+
+    ojph::param_cod cod = codestream.access_cod();
+    numDecompositions_ = cod.get_num_decompositions();
+    isReversible_ = cod.is_reversible();
+    progressionOrder_ = cod.get_progression_order();
 
     // allocate destination buffer
     const size_t bytesPerPixel = frameInfo_.bitsPerSample / 8;
@@ -114,9 +123,38 @@ class OpenJPHDecoder {
       return frameInfo_;
   }
 
+  /// <summary>
+  /// returns the number of wavelet decompositions.
+  /// </summary>
+  const size_t getNumDecompositions() const {
+      return numDecompositions_;
+  }
+
+  /// <summary>
+  /// returns true if the image is lossless, false if lossy
+  /// </summary>
+  const bool getIsReversible() const {
+      return isReversible_;
+  }
+
+  /// <summary>
+  /// returns progression order.
+  // 0 = LRCP
+  // 1 = RLCP
+  // 2 = RPCL
+  // 3 = PCRL
+  // 4 = CPRL
+  /// </summary>
+  const size_t getProgressionOrder() const {
+      return progressionOrder_;
+  }
+
   private:
     std::vector<uint8_t> encoded_;
     std::vector<uint8_t> decoded_;
     FrameInfo frameInfo_;
+    size_t numDecompositions_;
+    bool isReversible_;
+    size_t progressionOrder_;
 };
 

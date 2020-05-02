@@ -1,4 +1,4 @@
-// Copyright (c) Team CharLS.
+// Copyright (c) Chris Hafey.
 // SPDX-License-Identifier: MIT
 
 #pragma once
@@ -24,5 +24,8 @@ struct FrameInfo {
     /// </summary>
     uint8_t componentCount;
 
+    /// <summary>
+    /// 1 if signed, 0 if unsigned
+    /// </summary>
     uint8_t isSigned;
 };

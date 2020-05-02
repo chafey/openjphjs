@@ -43,9 +43,13 @@
     <div class="row">
       <div class="col-md-4">Component Count: <span id="componentCount"></span></div>
       <div class="col-md-4">Signed: <span id="signed"></span></div>
-      <div class="col-md-4">Near Lossless: <span id="nearLossless"></span></div>
     </div>
-  <div class="row">
+    <div class="row">
+        <div class="col-md-4">Reversible: <span id="reversible"></span></div>
+        <div class="col-md-4">Number Decompositions: <span id="numDecompositions"></span></div>
+        <div class="col-md-4">Progression Order: <span id="progessionOrder"></span></div>
+      </div>
+    <div class="row">
     <div class="col-md-6">
         <canvas id='myCanvas' width="512" height="512"/>
     </div>
@@ -225,6 +229,11 @@
     $('#signed').text(''+ ((frameInfo.isSigned === 0) ? 'false' : 'true'));
     //$('#nearLossless').text(''+nearLossless);
 
+    $('#reversible').text('' + instance.getIsReversible());
+    $('#numDecompositions').text('' + instance.getNumDecompositions());
+    $('#progessionOrder').text(instance.getProgressionOrder());
+
+
     // Display Image
     var decodedBuffer = instance.getDecodedBuffer();
     $('#decodedSize').text(''+decodedBuffer.length.toLocaleString() + " bytes");
@@ -268,8 +277,10 @@
     $('#bitsPerSample').text('');
     $('#componentCount').text('');
     $('#signed').text('');
-    $('#nearLossless').text('');
-  }
+    $('#reversible').text('');
+    $('#numDecompositions').text('');
+    $('#progessionOrder').text('');
+}
 
   Module.onRuntimeInitialized = async _ => {
     load('../../extern/OpenJPH/subprojects/js/html/test.j2c');

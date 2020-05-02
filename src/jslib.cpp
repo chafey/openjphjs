@@ -1,3 +1,6 @@
+// Copyright (c) Chris Hafey.
+// SPDX-License-Identifier: MIT
+
 #include "OpenJPHDecoder.hpp"
 #include "OpenJPHEncoder.hpp"
 
@@ -23,6 +26,9 @@ EMSCRIPTEN_BINDINGS(JpegLSDecoder) {
     .function("getDecodedBuffer", &OpenJPHDecoder::getDecodedBuffer)
     .function("decode", &OpenJPHDecoder::decode)
     .function("getFrameInfo", &OpenJPHDecoder::getFrameInfo)
+    .function("getNumDecompositions", &OpenJPHDecoder::getNumDecompositions)
+    .function("getIsReversible", &OpenJPHDecoder::getIsReversible)
+    .function("getProgressionOrder", &OpenJPHDecoder::getProgressionOrder)
    ;
 }
 
