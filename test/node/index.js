@@ -26,7 +26,7 @@ function decode(encodedImagePath, iterations = 1) {
 }
 
 
-function encode(pathToUncompressedImageFrame, imageFrame, iterations = 1) {
+function encode(pathToUncompressedImageFrame, imageFrame, pathToJ2CFile, iterations = 1) {
     const uncompressedImageFrame = fs.readFileSync(pathToUncompressedImageFrame);
     console.log('uncompressedImageFrame.length:', uncompressedImageFrame.length)
     const encoder = new openjphjs.HTJ2KEncoder();
@@ -46,8 +46,9 @@ function encode(pathToUncompressedImageFrame, imageFrame, iterations = 1) {
     const encodedBytes = encoder.getEncodedBuffer();
     console.log('  encoded length=', encodedBytes.length)
   
-    fs.writeFileSync('encoded.j2c', encodedBytes);
-
+    if(pathToJ2CFile) {
+        fs.writeFileSync(pathToJ2CFile, encodedBytes);
+    }
     // cleanup allocated memory
     encoder.delete();
   }
@@ -56,5 +57,19 @@ openjphjs.onRuntimeInitialized = async _ => {
   decode('../fixtures/j2c/CT2.j2c');
   decode('../../extern/OpenJPH/subprojects/js/html/test.j2c');
 
-  encode('../fixtures/raw/CT2.RAW', {width: 512, height: 512, bitsPerSample: 16, componentCount: 1, isSigned: true});
+  encode('../fixtures/raw/CT1.RAW', {width: 512, height: 512, bitsPerSample: 16, componentCount: 1, isSigned: true}, '../fixtures/j2c/CT1.j2c');
+  //encode('../fixtures/raw/CT2.RAW', {width: 512, height: 512, bitsPerSample: 16, componentCount: 1, isSigned: true}, '../fixtures/j2c/CT2.j2c');
+  //encode('../fixtures/raw/MG1.RAW', {width: 3064, height: 4774, bitsPerSample: 16, componentCount: 1, isSigned: false}, '../fixtures/j2c/MG1.j2c');
+  //encode('../fixtures/raw/MR1.RAW', {width: 512, height: 512, bitsPerSample: 16, componentCount: 1, isSigned: true}, '../fixtures/j2c/MR1.j2c');
+  //encode('../fixtures/raw/MR2.RAW', {width: 1024, height: 1024, bitsPerSample: 16, componentCount: 1, isSigned: false}, '../fixtures/j2c/MR2.j2c');
+  //encode('../fixtures/raw/MR3.RAW', {width: 512, height: 512, bitsPerSample: 16, componentCount: 1, isSigned: true}, '../fixtures/j2c/MR3.j2c');
+  //encode('../fixtures/raw/MR4.RAW', {width: 512, height: 512, bitsPerSample: 16, componentCount: 1, isSigned: false}, '../fixtures/j2c/MR4.j2c');
+  //encode('../fixtures/raw/NM1.RAW', {width: 256, height: 1024, bitsPerSample: 16, componentCount: 1, isSigned: true}, '../fixtures/j2c/NM1.j2c');
+  //encode('../fixtures/raw/RG1.RAW', {width: 1841, height: 1955, bitsPerSample: 16, componentCount: 1, isSigned: false}, '../fixtures/j2c/RG1.j2c');
+  //encode('../fixtures/raw/RG1.RAW', {width: 1841, height: 1955, bitsPerSample: 16, componentCount: 1, isSigned: false}, '../fixtures/j2c/RG1.j2c');
+  //encode('../fixtures/raw/RG2.RAW', {width: 1760, height: 2140, bitsPerSample: 16, componentCount: 1, isSigned: false}, '../fixtures/j2c/RG2.j2c');
+  //encode('../fixtures/raw/RG3.RAW', {width: 1760, height: 1760, bitsPerSample: 16, componentCount: 1, isSigned: false}, '../fixtures/j2c/RG3.j2c');
+  //encode('../fixtures/raw/SC1.RAW', {width: 2048, height: 2487, bitsPerSample: 16, componentCount: 1, isSigned: false}, '../fixtures/j2c/SC1.j2c');
+  //encode('../fixtures/raw/XA1.RAW', {width: 1024, height: 1024, bitsPerSample: 16, componentCount: 1, isSigned: false}, '../fixtures/j2c/XA1.j2c');
+
 }
