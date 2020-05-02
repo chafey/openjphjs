@@ -1,0 +1,322 @@
+<!DOCTYPE HTML>
+
+<html>
+<head>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">   
+    <script src="https://code.jquery.com/jquery-2.2.4.min.js"></script>
+    <script type="text/javascript" src="../../dist/openjphjs.js"></script>
+</head>
+<body>
+<div class="container">
+    <div class="page-header">
+        <h1>OpenJPH Decoding with WebAssembly</h1>
+        <p class="lead">
+          Select an image or drag and drop a OpenJPH file.  Files dropped here remain local in your browser, they are not uploaded anywhere.
+      </p>
+    </div>
+
+    <div class="row">
+      <select id="imageSelector">
+        <option value="../../extern/OpenJPH/subprojects/js/html/test.j2c" selected>Lena</option>
+        <option value="../../test/node/encoded.j2c">CT2</option>
+        
+    </select>
+
+    </div>
+    <div class="row">
+        <div class="col-md-12">Status:<span id="status"></span></div>
+    </div>
+    <div class="row">
+      <div class="col-md-4">Encoded Size: <span id="encodedSize"></span></div>
+      <div class="col-md-4">Decoded Size: <span id="decodedSize"></span></div>
+      <div class="col-md-4">Compression Ratio: <span id="compressionRatio"></span></div>
+    </div>
+    <div class="row">
+      <div class="col-md-4">Decode Time: <span id="decodeTime"></span></div>
+      <div class="col-md-4">Display Time: <span id="displayTime"></span></div>
+    </div>
+    <div class="row">
+      <div class="col-md-4">Width: <span id="width"></span></div>
+      <div class="col-md-4">Height: <span id="height"></span></div>
+      <div class="col-md-4">Bits Per Sample: <span id="bitsPerSample"></span></div>
+    </div>
+    <div class="row">
+      <div class="col-md-4">Component Count: <span id="componentCount"></span></div>
+      <div class="col-md-4">Signed: <span id="signed"></span></div>
+      <div class="col-md-4">Near Lossless: <span id="nearLossless"></span></div>
+    </div>
+  <div class="row">
+    <div class="col-md-6">
+        <canvas id='myCanvas' width="512" height="512"/>
+    </div>
+  </div>
+</body>
+
+<script>
+
+  let encodedJPEGLSBitStream = undefined;
+
+
+  function getMinMax(frameInfo, pixelData) {
+    const numPixels = frameInfo.width * frameInfo.height * frameInfo.componentCount;
+    let min = pixelData[0];
+    let max = pixelData[0];
+    for(let i=0; i < numPixels; i++) {
+      if(pixelData[i] < min) {
+        min = pixelData[i];
+      }
+      if(pixelData[i] > max) {
+        max = pixelData[i];
+      }
+    }
+    return {min, max};
+  }
+
+  function getPixelData(frameInfo, decodedBuffer, signed) {
+    if(frameInfo.bitsPerSample > 8) {
+      if(signed) {
+        return new Int16Array(decodedBuffer.buffer, decodedBuffer.byteOffset, decodedBuffer.byteLength);
+      } else {
+        return new Uint16Array(decodedBuffer.buffer, decodedBuffer.byteOffset, decodedBuffer.byteLength);
+      }
+    } else {
+      return decodedBuffer;
+    }
+  }
+
+
+  function colorToCanvas(frameInfo, pixelData, imageData, interleaveMode) {
+    let outOffset = 0;
+    const bytesPerSample = (frameInfo.bitsPerSample <= 8) ? 1 : 2;
+    let planeSize = frameInfo.width * frameInfo.height * bytesPerSample;
+    let shift = 0;
+    if(frameInfo.bitsPerSample >8) {
+      shift = 8;
+    }
+    let inOffset = 0;
+   
+    for(var y=0; y < frameInfo.height; y++) {
+      for (var x = 0; x < frameInfo.width; x++) {
+        if (interleaveMode === 0) { // planar (RRRRGGGGBBBB)
+          imageData.data[outOffset++] = pixelData[inOffset] >> shift;
+          imageData.data[outOffset++] = pixelData[inOffset + planeSize] >> shift;
+          imageData.data[outOffset++] = pixelData[inOffset + (planeSize * 2)] >> shift;
+          imageData.data[outOffset++] = 255;
+          inOffset++;
+        }
+        else if (interleaveMode === 1) { // line (actually RGB)
+          imageData.data[outOffset++] = pixelData[inOffset++] >> shift;
+          imageData.data[outOffset++] = pixelData[inOffset++] >> shift;
+          imageData.data[outOffset++] = pixelData[inOffset++] >> shift;
+          imageData.data[outOffset++] = 255;
+        }
+        else if (interleaveMode === 2) { // pixel/sample (actually RGB)
+          imageData.data[outOffset++] = pixelData[inOffset++] >> shift;
+          imageData.data[outOffset++] = pixelData[inOffset++] >> shift;
+          imageData.data[outOffset++] = pixelData[inOffset++] >> shift;
+          imageData.data[outOffset++] = 255;
+        }
+      }
+    }
+  }
+
+  function grayToCanvas(frameInfo, pixelData, imageData, signed) {
+    var outOffset = 0;
+    var planeSize = frameInfo.width * frameInfo.height;
+    var inOffset = 0;
+   
+    const minMax = getMinMax(frameInfo, pixelData);
+    //console.log(minMax);
+    let dynamicRange = minMax.max - minMax.min;
+    //console.log('dynamicRange=', dynamicRange);
+    let bitsOfData = 1;
+    while(dynamicRange > 1) {
+      dynamicRange = dynamicRange >> 1;
+      bitsOfData++;
+    }
+    //console.log('bitsOfData = ', bitsOfData);
+    let bitShift = bitsOfData - 8;
+    const offset = -minMax.min;
+    //console.log('bitShift=', bitShift);
+    //console.log('offset=', offset);
+    
+    for(var y=0; y < frameInfo.height; y++) {
+      for (var x = 0; x < frameInfo.width; x++) {
+        if(frameInfo.bitsPerSample <= 8) {
+          const value = pixelData[inOffset++];
+          imageData.data[outOffset] = value;
+          imageData.data[outOffset + 1] = value;
+          imageData.data[outOffset + 2] = value;
+          imageData.data[outOffset + 3] = 255;
+          outOffset += 4;
+        } 
+        else // bitsPerSample > 8 
+        {
+          // Do a simple transformation to display 16 bit data:
+          //  * Offset the pixels so the smallest value is 0
+          //  * Shift the pixels to display the most significant 8 bits
+          const fullPixel = pixelData[inOffset++] + offset;
+          const value = (fullPixel >> bitShift);
+          imageData.data[outOffset] = value;
+          imageData.data[outOffset + 1] = value;
+          imageData.data[outOffset + 2] = value;
+          imageData.data[outOffset + 3] = 255;
+          outOffset += 4;
+        }
+      }
+    }
+  }
+
+  function display(frameInfo, decodedBuffer, interleaveMode) {
+    const signed = true;//$('#signed').is(":checked"); 
+
+    const pixelData = getPixelData(frameInfo, decodedBuffer, signed);
+
+    const begin = performance.now(); // performance.now() returns value in milliseconds
+    var c = document.getElementById("myCanvas");
+    var ctx = c.getContext("2d");
+    ctx.fillRect(0,0,c.width, c.height);
+
+    c.width = frameInfo.width;
+    c.height = frameInfo.height;
+    ctx.fillStyle = "#000000";
+    ctx.fillRect(0,0,frameInfo.width, frameInfo.height);
+    var myImageData = ctx.createImageData(frameInfo.width, frameInfo.height);
+    
+
+    if(frameInfo.componentCount > 1) {
+      colorToCanvas(frameInfo, pixelData, myImageData, 2);
+    } else {
+      grayToCanvas(frameInfo, pixelData, myImageData, signed);
+    }
+
+    
+    ctx.putImageData(myImageData, 0, 0);
+    const end = performance.now();
+    $('#displayTime').text((end-begin).toFixed(2) + ' ms');
+  }
+
+  function decode() {
+    $('#encodedSize').text('' + encodedJPEGLSBitStream.length.toLocaleString() + ' bytes');
+
+    // Setup
+    let instance = new Module.OpenJPHDecoder();
+    const encodedBuffer = instance.getEncodedBuffer(encodedJPEGLSBitStream.length);
+    let begin = performance.now(); // performance.now() returns value in milliseconds
+    encodedBuffer.set(encodedJPEGLSBitStream);
+    let end = performance.now();
+
+    // Decode
+    begin = performance.now(); // performance.now() returns value in milliseconds
+    instance.decode();
+    end = performance.now();
+    $('#decodeTime').text((end-begin).toFixed(2) + ' ms');
+
+    const frameInfo = instance.getFrameInfo();
+    //console.log(frameInfo);
+    //const interleaveMode = instance.getInterleaveMode();
+    // /const nearLossless = instance.getNearLossless();
+
+    // Display image properties
+    $('#width').text(''+frameInfo.width);
+    $('#height').text(''+frameInfo.height);
+    $('#bitsPerSample').text(''+frameInfo.bitsPerSample);
+    $('#componentCount').text(''+frameInfo.componentCount);
+    $('#signed').text(''+ ((frameInfo.isSigned === 0) ? 'false' : 'true'));
+    //$('#nearLossless').text(''+nearLossless);
+
+    // Display Image
+    var decodedBuffer = instance.getDecodedBuffer();
+    $('#decodedSize').text(''+decodedBuffer.length.toLocaleString() + " bytes");
+    $('#compressionRatio').text('' + (decodedBuffer.length /encodedJPEGLSBitStream.length).toFixed(2) + ":1");
+    display(frameInfo, decodedBuffer, 2);
+
+    // Free up memory
+    instance.delete();
+  }
+
+  function load(url) {
+    fetch(url)
+    .then((response) => {
+      return response.arrayBuffer();
+    })
+    .then((arrayBuffer) => {
+      try {
+        encodedJPEGLSBitStream = new Uint8Array(arrayBuffer);
+        decode();
+      }
+      catch(ex) {
+        $('#status').text('Exception thrown while parsing ' + ex);
+      }
+    }).catch(function() {
+      $('#status').text('error loading ' + url);
+    });
+  }
+
+  function reset() {
+    const c = document.getElementById("myCanvas");
+    const ctx = c.getContext("2d");
+    ctx.fillRect(0,0,c.width, c.height);
+    $('#status').text('');
+    $('#encodedSize').text('');
+    $('#decodedSize').text('');
+    $('#compressionRatio').text('');
+    $('#decodeTime').text('');
+    $('#displayTime').text('');
+    $('#width').text('');
+    $('#height').text('');
+    $('#bitsPerSample').text('');
+    $('#componentCount').text('');
+    $('#signed').text('');
+    $('#nearLossless').text('');
+  }
+
+  Module.onRuntimeInitialized = async _ => {
+    load('../../extern/OpenJPH/subprojects/js/html/test.j2c');
+    //load('../../test/node/encoded.j2c');
+
+    $('#imageSelector').change(function(e) {
+      reset();
+      load(e.target.options[e.target.selectedIndex].value);
+    });
+
+    // this function gets called once the user drops the file onto the div
+    function handleFileSelect(evt) {
+      evt.stopPropagation();
+      evt.preventDefault();
+
+      // Get the FileList object that contains the list of files that were dropped
+      var files = evt.dataTransfer.files;
+
+      // this UI is only built for a single file so just dump the first one
+      var file = files[0];
+
+      var fileReader = new FileReader();
+      fileReader.onload = function (e) {
+          var fileAsArrayBuffer = e.target.result;
+          encodedJPEGLSBitStream = new Uint8Array(fileAsArrayBuffer);
+          reset();
+          try {
+            decode();
+          }
+          catch(ex) {
+            $('#status').text('Exception thrown while parsing ' + ex);
+          }
+      };
+      fileReader.readAsArrayBuffer(file);
+    }
+
+    function handleDragOver(evt) {
+        evt.stopPropagation();
+        evt.preventDefault();
+        evt.dataTransfer.dropEffect = 'copy'; // Explicitly show this is a copy.
+    }
+
+    // Setup the dnd listeners.
+    var dropZone = document.getElementById('myCanvas');
+    dropZone.addEventListener('dragover', handleDragOver, false);
+    dropZone.addEventListener('drop', handleFileSelect, false);
+
+  }
+</script>
+</html>
