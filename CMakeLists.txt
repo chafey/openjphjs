@@ -31,7 +31,8 @@ if(NOT EXISTS "${PROJECT_SOURCE_DIR}/extern/OpenJPH/CMakeLists.txt")
     message(FATAL_ERROR "The submodules were not downloaded! GIT_SUBMODULE was turned off or failed. Please update submodules and try again.")
 endif()
 
-SET(OJPH_DISABLE_INTEL_SIMD ON)
+option(OJPH_DISABLE_INTEL_SIMD "Disables the use of SIMD instructions and associated files" ON)
+option(BUILD_SHARED_LIBS "Shared Libraries" OFF)
 
 # add the external library
 add_subdirectory(extern/OpenJPH EXCLUDE_FROM_ALL)

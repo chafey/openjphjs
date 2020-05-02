@@ -1,3 +1,6 @@
+// Copyright (c) Chris Hafey.
+// SPDX-License-Identifier: MIT
+
 let openjphjs = require('../../dist/openjphjs.js');
 const fs = require('fs')
 
@@ -24,7 +27,6 @@ function decode(encodedImagePath, iterations = 1) {
 
   decoder.delete();
 }
-
 
 function encode(pathToUncompressedImageFrame, imageFrame, pathToJ2CFile, iterations = 1) {
     const uncompressedImageFrame = fs.readFileSync(pathToUncompressedImageFrame);

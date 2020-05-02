@@ -12,7 +12,9 @@
 #include "../extern/OpenJPH/src/core/common/ojph_params.h"
 #include "../extern/OpenJPH/src/core/common/ojph_codestream.h"
 
+#ifdef __EMSCRIPTEN__
 #include <emscripten/val.h>
+#endif
 
 #include "FrameInfo.hpp"
 
@@ -32,6 +34,7 @@ class HTJ2KEncoder {
   {
   }
 
+#ifdef __EMSCRIPTEN__
   /// <summary>
   /// Resizes the decoded buffer to accomodate the specified frameInfo.
   /// Returns a TypedArray of the buffer allocated in WASM memory space that
@@ -64,6 +67,16 @@ class HTJ2KEncoder {
   emscripten::val getEncodedBuffer() {
     return emscripten::val(emscripten::typed_memory_view(encoded_.size(), encoded_.data()));
   }
+#else
+  std::vector<uint8_t>& getDecodedBytes(const FrameInfo& frameInfo) {
+    frameInfo_ = frameInfo;
+    return decoded_;
+  }
+
+  const std::vector<uint8_t>& getEncodedBytes() const {
+    return encoded_;
+  }
+#endif
 
   /// <summary>
   /// Sets the number of wavelet decompositions

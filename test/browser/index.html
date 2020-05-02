@@ -1,5 +1,8 @@
+<!--
+Copyright (c) Chris Hafey.
+SPDX-License-Identifier: MIT
+-->
 <!DOCTYPE HTML>
-
 <html>
 <head>
     <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">   
@@ -88,7 +91,7 @@
 
   function getPixelData(frameInfo, decodedBuffer, signed) {
     if(frameInfo.bitsPerSample > 8) {
-      if(signed) {
+      if(frameInfo.isSigned) {
         return new Int16Array(decodedBuffer.buffer, decodedBuffer.byteOffset, decodedBuffer.byteLength);
       } else {
         return new Uint16Array(decodedBuffer.buffer, decodedBuffer.byteOffset, decodedBuffer.byteLength);
@@ -98,37 +101,22 @@
     }
   }
 
-  function colorToCanvas(frameInfo, pixelData, imageData, interleaveMode) {
+  function colorToCanvas(frameInfo, pixelData, imageData) {
     let outOffset = 0;
     const bytesPerSample = (frameInfo.bitsPerSample <= 8) ? 1 : 2;
     let planeSize = frameInfo.width * frameInfo.height * bytesPerSample;
     let shift = 0;
-    if(frameInfo.bitsPerSample >8) {
+    if(frameInfo.bitsPerSample > 8) {
       shift = 8;
     }
     let inOffset = 0;
    
     for(var y=0; y < frameInfo.height; y++) {
       for (var x = 0; x < frameInfo.width; x++) {
-        if (interleaveMode === 0) { // planar (RRRRGGGGBBBB)
-          imageData.data[outOffset++] = pixelData[inOffset] >> shift;
-          imageData.data[outOffset++] = pixelData[inOffset + planeSize] >> shift;
-          imageData.data[outOffset++] = pixelData[inOffset + (planeSize * 2)] >> shift;
-          imageData.data[outOffset++] = 255;
-          inOffset++;
-        }
-        else if (interleaveMode === 1) { // line (actually RGB)
-          imageData.data[outOffset++] = pixelData[inOffset++] >> shift;
-          imageData.data[outOffset++] = pixelData[inOffset++] >> shift;
-          imageData.data[outOffset++] = pixelData[inOffset++] >> shift;
-          imageData.data[outOffset++] = 255;
-        }
-        else if (interleaveMode === 2) { // pixel/sample (actually RGB)
-          imageData.data[outOffset++] = pixelData[inOffset++] >> shift;
-          imageData.data[outOffset++] = pixelData[inOffset++] >> shift;
-          imageData.data[outOffset++] = pixelData[inOffset++] >> shift;
-          imageData.data[outOffset++] = 255;
-        }
+        imageData.data[outOffset++] = pixelData[inOffset++] >> shift;
+        imageData.data[outOffset++] = pixelData[inOffset++] >> shift;
+        imageData.data[outOffset++] = pixelData[inOffset++] >> shift;
+        imageData.data[outOffset++] = 255;
       }
     }
   }
@@ -181,28 +169,23 @@
   }
 
   function display(frameInfo, decodedBuffer, interleaveMode) {
-    const signed = true;//$('#signed').is(":checked"); 
 
-    const pixelData = getPixelData(frameInfo, decodedBuffer, signed);
+    const pixelData = getPixelData(frameInfo, decodedBuffer);
 
     const begin = performance.now(); // performance.now() returns value in milliseconds
+    
     var c = document.getElementById("myCanvas");
     var ctx = c.getContext("2d");
-    ctx.fillRect(0,0,c.width, c.height);
 
     c.width = frameInfo.width;
     c.height = frameInfo.height;
-    ctx.fillStyle = "#000000";
-    ctx.fillRect(0,0,frameInfo.width, frameInfo.height);
     var myImageData = ctx.createImageData(frameInfo.width, frameInfo.height);
-    
 
     if(frameInfo.componentCount > 1) {
       colorToCanvas(frameInfo, pixelData, myImageData, 2);
     } else {
       grayToCanvas(frameInfo, pixelData, myImageData, signed);
     }
-
     
     ctx.putImageData(myImageData, 0, 0);
     const end = performance.now();
@@ -287,6 +270,7 @@
 }
 
   Module.onRuntimeInitialized = async _ => {
+    $('#imageSelector').val('../../extern/OpenJPH/subprojects/js/html/test.j2c');
     load('../../extern/OpenJPH/subprojects/js/html/test.j2c');
     //load('../../test/fixtures/j2c/CT2.j2c');
 

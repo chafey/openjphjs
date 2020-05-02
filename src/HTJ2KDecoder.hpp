@@ -12,7 +12,9 @@
 #include "../extern/OpenJPH/src/core/common/ojph_params.h"
 #include "../extern/OpenJPH/src/core/common/ojph_codestream.h"
 
+#ifdef __EMSCRIPTEN__
 #include <emscripten/val.h>
+#endif
 
 #include "FrameInfo.hpp"
 
@@ -31,6 +33,7 @@ class HTJ2KDecoder {
   {
   }
 
+#ifdef __EMSCRIPTEN__
   /// <summary>
   /// Resizes encoded buffer and returns a TypedArray of the buffer allocated
   /// in WASM memory space that will hold the HTJ2K encoded bitstream.
@@ -50,6 +53,25 @@ class HTJ2KDecoder {
   emscripten::val getDecodedBuffer() {
     return emscripten::val(emscripten::typed_memory_view(decoded_.size(), decoded_.data()));
   }
+#else
+  /// <summary>
+  /// Resizes encoded buffer and returns a pointer to the allocated buffer
+  /// in WASM memory space that will hold the HTJ2K encoded bitstream.
+  /// JavaScript code needs to copy the HTJ2K encoded bistream into the
+  /// returned buffer.  This copy operation is needed because WASM runs
+  /// in a sandbox and cannot access memory managed by JavaScript.
+  /// </summary>
+  std::vector<uint8_t>& getEncodedBytes() {
+      return encoded_;
+  }
+  /// <summary>
+  /// Returns a pointer to the buffer allocated in WASM memory space that
+  /// holds the decoded pixel data
+  /// </summary>
+  const std::vector<uint8_t>& getDecodedBytes() const {
+      return decoded_;
+  }
+#endif
 
   /// <summary>
   /// Decodes the encoded HTJ2K bitstream.  The caller must have copied the
