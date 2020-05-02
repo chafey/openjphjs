@@ -6,11 +6,11 @@
 #include <exception>
 #include <memory>
 
-#include "../extern/OpenJPH/src/core/common/ojph_arch.h"
-#include "../extern/OpenJPH/src/core/common/ojph_file.h"
-#include "../extern/OpenJPH/src/core/common/ojph_mem.h"
-#include "../extern/OpenJPH/src/core/common/ojph_params.h"
-#include "../extern/OpenJPH/src/core/common/ojph_codestream.h"
+#include <ojph_arch.h>
+#include <ojph_file.h>
+#include <ojph_mem.h>
+#include <ojph_params.h>
+#include <ojph_codestream.h>
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten/val.h>
