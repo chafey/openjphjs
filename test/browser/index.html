@@ -36,6 +36,7 @@ SPDX-License-Identifier: MIT
         <option value="../../test/fixtures/j2c/XA1.j2c">XA1</option>
 
     </select>
+    <button id="benchmark">Benchmark</button>
 
     </div>
     <div class="row">
@@ -192,7 +193,7 @@ SPDX-License-Identifier: MIT
     $('#displayTime').text((end-begin).toFixed(2) + ' ms');
   }
 
-  function decode() {
+  function decode(iterations = 1) {
     $('#encodedSize').text('' + encodedBitStream.length.toLocaleString() + ' bytes');
 
     // Setup
@@ -206,7 +207,6 @@ SPDX-License-Identifier: MIT
     instance.decode();
 
     // Decode
-    const iterations = 50;
     begin = performance.now(); // performance.now() returns value in milliseconds
     for(let i=0; i < iterations; i++) {
       instance.decode();
@@ -287,6 +287,14 @@ SPDX-License-Identifier: MIT
     $('#imageSelector').change(function(e) {
       reset();
       load(e.target.options[e.target.selectedIndex].value);
+    });
+
+    $('#benchmark').click(function(e) {
+      $('#status').text('Please wait while benchmark runs....');
+      setTimeout(() => {
+        decode(50)
+        $('#status').text('');
+      }, 1);
     });
 
     // this function gets called once the user drops the file onto the div
