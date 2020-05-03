@@ -202,11 +202,17 @@ SPDX-License-Identifier: MIT
     encodedBuffer.set(encodedBitStream);
     let end = performance.now();
 
-    // Decode
-    begin = performance.now(); // performance.now() returns value in milliseconds
+    // warmup decode
     instance.decode();
+
+    // Decode
+    const iterations = 50;
+    begin = performance.now(); // performance.now() returns value in milliseconds
+    for(let i=0; i < iterations; i++) {
+      instance.decode();
+    }
     end = performance.now();
-    $('#decodeTime').text((end-begin).toFixed(2) + ' ms');
+    $('#decodeTime').text(((end-begin) / iterations).toFixed(2) + ' ms');
 
     const frameInfo = instance.getFrameInfo();
     //console.log(frameInfo);
@@ -269,10 +275,14 @@ SPDX-License-Identifier: MIT
     $('#progessionOrder').text('');
 }
 
+  function init(path) {
+    $('#imageSelector').val(path);
+    load(path);
+  }
+
   Module.onRuntimeInitialized = async _ => {
-    $('#imageSelector').val('../../extern/OpenJPH/subprojects/js/html/test.j2c');
-    load('../../extern/OpenJPH/subprojects/js/html/test.j2c');
-    //load('../../test/fixtures/j2c/CT2.j2c');
+    init('../../test/fixtures/j2c/CT1.j2c');
+    //init('../../extern/OpenJPH/subprojects/js/html/test.j2c');
 
     $('#imageSelector').change(function(e) {
       reset();

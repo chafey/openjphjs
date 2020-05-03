@@ -55,18 +55,15 @@ class HTJ2KDecoder {
   }
 #else
   /// <summary>
-  /// Resizes encoded buffer and returns a pointer to the allocated buffer
-  /// in WASM memory space that will hold the HTJ2K encoded bitstream.
-  /// JavaScript code needs to copy the HTJ2K encoded bistream into the
-  /// returned buffer.  This copy operation is needed because WASM runs
-  /// in a sandbox and cannot access memory managed by JavaScript.
+  /// Returns the buffer to store the encoded bytes.  This method is not exported
+  /// to JavaScript, it is intended to be called by C++ code
   /// </summary>
   std::vector<uint8_t>& getEncodedBytes() {
       return encoded_;
   }
   /// <summary>
-  /// Returns a pointer to the buffer allocated in WASM memory space that
-  /// holds the decoded pixel data
+  /// Returns the buffer to store the decoded bytes.  This method is not exported
+  /// to JavaScript, it is intended to be called by C++ code
   /// </summary>
   const std::vector<uint8_t>& getDecodedBytes() const {
       return decoded_;
@@ -76,7 +73,7 @@ class HTJ2KDecoder {
   /// <summary>
   /// Decodes the encoded HTJ2K bitstream.  The caller must have copied the
   /// HTJ2K encoded bitstream into the encoded buffer before calling this
-  /// method, see getEncodedBuffer() above.
+  /// method, see getEncodedBuffer() and getEncodedBytes() above.
   /// </summary>
   void decode() {
     // Parse the header
@@ -102,39 +99,57 @@ class HTJ2KDecoder {
     decoded_.resize(destinationSize);
 
     // parse it
-    codestream.set_planar(false);
+    if(frameInfo_.componentCount == 1) {
+      codestream.set_planar(true);
+    } else {
+      codestream.set_planar(false);
+    }
     codestream.create();
 
     // Extract the data line by line...
     int comp_num;
     for (int y = 0; y < frameInfo_.height; y++)
     {
-        size_t lineStart = y * frameInfo_.width * frameInfo_.componentCount * bytesPerPixel;
+      size_t lineStart = y * frameInfo_.width * frameInfo_.componentCount * bytesPerPixel;
+      if(frameInfo_.componentCount == 1) {
+        ojph::line_buf *line = codestream.pull(comp_num);
+        if(frameInfo_.bitsPerSample <= 8) {
+          std::copy(line->i32, line->i32 + frameInfo_.width, &decoded_[lineStart]);
+        } else {
+          if(frameInfo_.isSigned) {
+            std::copy(line->i32, line->i32 + frameInfo_.width, (signed short*)&decoded_[lineStart]);
+          } else {
+            std::copy(line->i32, line->i32 + frameInfo_.width, (unsigned short*)&decoded_[lineStart]);
+          }
+        }
+      } else {
         for (int c = 0; c < frameInfo_.componentCount; c++)
         {
-            ojph::line_buf *line = codestream.pull(comp_num);
-            if(frameInfo_.bitsPerSample <= 8) {
-                uint8_t* pOut = &decoded_[lineStart] + c;
-                for (size_t x = 0; x < frameInfo_.width; x++) {
-                    int val = line->i32[x];
-                    pOut[x * frameInfo_.componentCount] = val;
-                }
-            } else {
-                if(frameInfo_.isSigned) {
-                    short* pOut = (short*)&decoded_[lineStart] + c;
-                    for (size_t x = 0; x < frameInfo_.width; x++) {
-                        int val = line->i32[x];
-                        pOut[x * frameInfo_.componentCount] = val;
-                    }
-                } else {
-                    unsigned short* pOut = (unsigned short*)&decoded_[lineStart] + c;
-                    for (size_t x = 0; x < frameInfo_.width; x++) {
-                        int val = line->i32[x];
-                        pOut[x * frameInfo_.componentCount] = val;
-                    }
-                }
+          ojph::line_buf *line = codestream.pull(comp_num);
+          if(frameInfo_.bitsPerSample <= 8) {
+            uint8_t* pOut = &decoded_[lineStart] + c;
+            for (size_t x = 0; x < frameInfo_.width; x++) {
+              int val = line->i32[x];
+              pOut[x * frameInfo_.componentCount] = val;
             }
+          } else {
+            // This should work but has not been tested yet
+            if(frameInfo_.isSigned) {
+              short* pOut = (short*)&decoded_[lineStart] + c;
+              for (size_t x = 0; x < frameInfo_.width; x++) {
+                int val = line->i32[x];
+                pOut[x * frameInfo_.componentCount] = val;
+              }
+            } else {
+              unsigned short* pOut = (unsigned short*)&decoded_[lineStart] + c;
+              for (size_t x = 0; x < frameInfo_.width; x++) {
+                  int val = line->i32[x];
+                  pOut[x * frameInfo_.componentCount] = val;
+              }
+            }
+          }
         }
+      }
     }
   }
 

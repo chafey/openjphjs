@@ -12,10 +12,12 @@
 #include <ojph_params.h>
 #include <ojph_codestream.h>
 
+
 #ifdef __EMSCRIPTEN__
 #include <emscripten/val.h>
 #endif
 
+#include "EncodedBuffer.hpp"
 #include "FrameInfo.hpp"
 
 /// <summary>
@@ -65,16 +67,24 @@ class HTJ2KEncoder {
   /// encoded pixel data.
   /// </returns>
   emscripten::val getEncodedBuffer() {
-    return emscripten::val(emscripten::typed_memory_view(encoded_.size(), encoded_.data()));
+    return emscripten::val(emscripten::typed_memory_view(encoded_.tell(), encoded_.get_data()));
   }
 #else
-  std::vector<uint8_t>& getDecodedBytes(const FrameInfo& frameInfo) {
+  /// <summary>
+  /// Returns the buffer to store the decoded bytes.  This method is not
+  /// exported to JavaScript, it is intended to be called by C++ code
+  /// </summary>
+ std::vector<uint8_t>& getDecodedBytes(const FrameInfo& frameInfo) {
     frameInfo_ = frameInfo;
     return decoded_;
   }
 
+  /// <summary>
+  /// Returns the buffer to store the encoded bytes.  This method is not
+  /// exported to JavaScript, it is intended to be called by C++ code
+  /// </summary>
   const std::vector<uint8_t>& getEncodedBytes() const {
-    return encoded_;
+    return encoded_.getBuffer();
   }
 #endif
 
@@ -114,8 +124,7 @@ class HTJ2KEncoder {
   /// above
   /// </summary>
   void encode() {
-    ojph::mem_outfile mem_file;
-    mem_file.open();
+    encoded_.open();
 
     // Setup image size parameters
     ojph::codestream codestream;
@@ -142,7 +151,7 @@ class HTJ2KEncoder {
     if(!lossless_) {
       codestream.access_qcd().set_irrev_quant(quantizationStep_);
     }
-    codestream.write_headers(&mem_file);
+    codestream.write_headers(&encoded_);
 
     // Encode the image
     const size_t bytesPerPixel = frameInfo_.bitsPerSample / 8;
@@ -152,41 +161,39 @@ class HTJ2KEncoder {
     int height = siz.get_image_extent().y - siz.get_image_offset().y;
     for (size_t y = 0; y < height; y++)
     {
-        for (size_t c = 0; c < siz.get_num_components(); c++)
-        {
-          int* dp = cur_line->i32;
-          if(frameInfo_.bitsPerSample <= 8) {
-            uint8_t* pIn = (uint8_t*)(decoded_.data() + (y * frameInfo_.width * bytesPerPixel));
+      for (size_t c = 0; c < siz.get_num_components(); c++)
+      {
+        int* dp = cur_line->i32;
+        if(frameInfo_.bitsPerSample <= 8) {
+          uint8_t* pIn = (uint8_t*)(decoded_.data() + (y * frameInfo_.width * bytesPerPixel));
+          for(size_t x=0; x < frameInfo_.width; x++) {
+            *dp++ = *pIn++;
+          }
+        } else {
+          if(frameInfo_.isSigned) {
+            int16_t* pIn = (int16_t*)(decoded_.data() + (y * frameInfo_.width * bytesPerPixel));
             for(size_t x=0; x < frameInfo_.width; x++) {
               *dp++ = *pIn++;
             }
           } else {
-            if(frameInfo_.isSigned) {
-              int16_t* pIn = (int16_t*)(decoded_.data() + (y * frameInfo_.width * bytesPerPixel));
-              for(size_t x=0; x < frameInfo_.width; x++) {
-                *dp++ = *pIn++;
-              }
-            } else {
-              uint16_t* pIn = (uint16_t*)(decoded_.data() + (y * frameInfo_.width * bytesPerPixel));
-              for(size_t x=0; x < frameInfo_.width; x++) {
-                *dp++ = *pIn++;
-              }
+            uint16_t* pIn = (uint16_t*)(decoded_.data() + (y * frameInfo_.width * bytesPerPixel));
+            for(size_t x=0; x < frameInfo_.width; x++) {
+              *dp++ = *pIn++;
             }
           }
-          cur_line = codestream.exchange(cur_line, next_comp);
         }
+        cur_line = codestream.exchange(cur_line, next_comp);
+      }
     }
+    
+    // cleanup
     codestream.flush();
-
-    encoded_.resize(mem_file.tell());
-    memcpy(encoded_.data(), mem_file.get_data(), (size_t)mem_file.tell());
-
     codestream.close();
   }
 
   private:
     std::vector<uint8_t> decoded_;
-    std::vector<uint8_t> encoded_;
+    EncodedBuffer encoded_;
     FrameInfo frameInfo_;
     size_t decompositions_;
     bool lossless_;
