@@ -19,6 +19,20 @@ EMSCRIPTEN_BINDINGS(FrameInfo) {
        ;
 }
 
+EMSCRIPTEN_BINDINGS(Point) {
+  value_object<Point>("Point")
+    .field("x", &Point::x)
+    .field("y", &Point::y)
+       ;
+}
+
+EMSCRIPTEN_BINDINGS(Size) {
+  value_object<Size>("Size")
+    .field("width", &Size::width)
+    .field("height", &Size::height)
+       ;
+}
+
 EMSCRIPTEN_BINDINGS(HTJ2KDecoder) {
   class_<HTJ2KDecoder>("HTJ2KDecoder")
     .constructor<>()
@@ -26,9 +40,17 @@ EMSCRIPTEN_BINDINGS(HTJ2KDecoder) {
     .function("getDecodedBuffer", &HTJ2KDecoder::getDecodedBuffer)
     .function("decode", &HTJ2KDecoder::decode)
     .function("getFrameInfo", &HTJ2KDecoder::getFrameInfo)
+    .function("getDownSample", &HTJ2KDecoder::getDownSample)
     .function("getNumDecompositions", &HTJ2KDecoder::getNumDecompositions)
     .function("getIsReversible", &HTJ2KDecoder::getIsReversible)
     .function("getProgressionOrder", &HTJ2KDecoder::getProgressionOrder)
+    .function("getImageOffset", &HTJ2KDecoder::getImageOffset)
+    .function("getTileSize", &HTJ2KDecoder::getTileSize)
+    .function("getTileOffset", &HTJ2KDecoder::getTileOffset)
+    .function("getBlockDimensions", &HTJ2KDecoder::getBlockDimensions)
+    .function("getPrecinct", &HTJ2KDecoder::getPrecinct)
+    .function("getNumLayers", &HTJ2KDecoder::getNumLayers)
+    .function("getIsUsingColorTransform", &HTJ2KDecoder::getIsUsingColorTransform)
    ;
 }
 

@@ -40,33 +40,46 @@ SPDX-License-Identifier: MIT
 
     </div>
     <div class="row">
-        <div class="col-md-12">Status:<span id="status"></span></div>
-    </div>
+        <div class="col-md-4">Status:<span id="status"></span></div>
+        <div class="col-md-4">Decode Time: <span id="decodeTime"></span></div>
+        <div class="col-md-4">Display Time: <span id="displayTime"></span></div>
+      </div>
     <div class="row">
       <div class="col-md-4">Encoded Size: <span id="encodedSize"></span></div>
       <div class="col-md-4">Decoded Size: <span id="decodedSize"></span></div>
       <div class="col-md-4">Compression Ratio: <span id="compressionRatio"></span></div>
     </div>
+    <hr>
     <div class="row">
-      <div class="col-md-4">Decode Time: <span id="decodeTime"></span></div>
-      <div class="col-md-4">Display Time: <span id="displayTime"></span></div>
-    </div>
-    <div class="row">
-      <div class="col-md-4">Width: <span id="width"></span></div>
-      <div class="col-md-4">Height: <span id="height"></span></div>
-      <div class="col-md-4">Bits Per Sample: <span id="bitsPerSample"></span></div>
-    </div>
-    <div class="row">
+      <div class="col-md-4">Resolution: <span id="resolution"></span></div>
+      <div class="col-md-4">Pixel Format: <span id="pixelFormat"></span></div>
       <div class="col-md-4">Component Count: <span id="componentCount"></span></div>
-      <div class="col-md-4">Signed: <span id="signed"></span></div>
+    </div>
+    <hr>
+    <div class="row">
+      <div class="col-md-4">Image Offset: <span id="imageOffset"></span></div>
+      <div class="col-md-4">Tile Size: <span id="tileSize"></span></div>
+      <div class="col-md-4">Tile Offset: <span id="tileOffset"></span></div>
     </div>
     <div class="row">
-        <div class="col-md-4">Reversible: <span id="reversible"></span></div>
-        <div class="col-md-4">Decompositions: <span id="numDecompositions"></span></div>
-        <div class="col-md-4">Progression Order: <span id="progessionOrder"></span></div>
-      </div>
+      <div class="col-md-4">Decompositions: <span id="numDecompositions"></span></div>
+      <div class="col-md-4">Block Dimensions: <span id="blockDimensions"></span></div>
+      <div class="col-md-4">Reversible: <span id="reversible"></span></div>
+    </div>
     <div class="row">
-    <div class="col-md-6">
+      <div class="col-md-4">Progression Order: <span id="progessionOrder"></span></div>
+      <div class="col-md-4">Num Layers: <span id="numLayers"></span></div>
+      <div class="col-md-4">Color Transform: <span id="colorTransform"></span></div>
+    </div>
+    <div class="row">
+      <div class="col-md-12">Downsampling: <span id="downSampling"></span></div>
+    </div>
+    <div class="row">
+      <div class="col-md-12">Precincts: <span id="precincts"></span></div>
+    </div>
+    <hr>
+    <div class="row">
+      <div class="col-md-6">
         <canvas id='myCanvas' width="512" height="512"/>
     </div>
   </div>
@@ -90,7 +103,7 @@ SPDX-License-Identifier: MIT
     return {min, max};
   }
 
-  function getPixelData(frameInfo, decodedBuffer, signed) {
+  function getPixelData(frameInfo, decodedBuffer) {
     if(frameInfo.bitsPerSample > 8) {
       if(frameInfo.isSigned) {
         return new Int16Array(decodedBuffer.buffer, decodedBuffer.byteOffset, decodedBuffer.byteLength);
@@ -122,7 +135,7 @@ SPDX-License-Identifier: MIT
     }
   }
 
-  function grayToCanvas(frameInfo, pixelData, imageData, signed) {
+  function grayToCanvas(frameInfo, pixelData, imageData) {
     var outOffset = 0;
     var planeSize = frameInfo.width * frameInfo.height;
     var inOffset = 0;
@@ -185,7 +198,7 @@ SPDX-License-Identifier: MIT
     if(frameInfo.componentCount > 1) {
       colorToCanvas(frameInfo, pixelData, myImageData, 2);
     } else {
-      grayToCanvas(frameInfo, pixelData, myImageData, signed);
+      grayToCanvas(frameInfo, pixelData, myImageData);
     }
     
     ctx.putImageData(myImageData, 0, 0);
@@ -218,13 +231,30 @@ SPDX-License-Identifier: MIT
     //console.log(frameInfo);
 
     // Display image properties
-    $('#width').text(''+frameInfo.width);
-    $('#height').text(''+frameInfo.height);
-    $('#bitsPerSample').text(''+frameInfo.bitsPerSample);
+    $('#resolution').text(''+frameInfo.width + 'x' + frameInfo.height);
+    $('#pixelFormat').text(''+frameInfo.bitsPerSample +' bpp ' + (frameInfo.isSigned ? 'signed' : 'unsigned'));
     $('#componentCount').text(''+frameInfo.componentCount);
-    $('#signed').text(''+ frameInfo.isSigned);
-    $('#reversible').text('' + instance.getIsReversible());
+
+    $('#imageOffset').text('' + instance.getImageOffset().x + ',' + instance.getImageOffset().y);
+    $('#tileSize').text('' + instance.getTileSize().width + 'x' + instance.getTileSize().height);
+    $('#tileOffset').text('' + instance.getTileOffset().x + ',' + instance.getTileOffset().y);
+    let downSamplings = '';
+    for(let i=0; i < frameInfo.componentCount; i++) {
+      downSamplings += instance.getDownSample(i).x + ',' + instance.getDownSample(i).y + ' ';
+    }
+    $('#downSampling').text('' + downSamplings);
+
     $('#numDecompositions').text('' + instance.getNumDecompositions());
+    $('#blockDimensions').text('' + instance.getBlockDimensions().width + 'x' + instance.getBlockDimensions().height);
+    $('#reversible').text('' + instance.getIsReversible());
+    let precints = '';
+    for(let i=0; i < instance.getNumDecompositions(); i++) {
+      precints += instance.getPrecinct(i).width + ',' + instance.getPrecinct(i).height + ' ';
+    }
+    $('#precincts').text('' + precints);
+    $('#numLayers').text('' + instance.getNumLayers());
+    $('#colorTransform').text('' + instance.getIsUsingColorTransform());
+
     $('#progessionOrder').text(['LRCP', 'RLCP', 'RPCL', 'PCRL', 'CPRL'][instance.getProgressionOrder()]);
 
     // Display Image
@@ -269,7 +299,6 @@ SPDX-License-Identifier: MIT
     $('#height').text('');
     $('#bitsPerSample').text('');
     $('#componentCount').text('');
-    $('#signed').text('');
     $('#reversible').text('');
     $('#numDecompositions').text('');
     $('#progessionOrder').text('');
@@ -281,8 +310,8 @@ SPDX-License-Identifier: MIT
   }
 
   Module.onRuntimeInitialized = async _ => {
-    init('../../test/fixtures/j2c/CT1.j2c');
-    //init('../../extern/OpenJPH/subprojects/js/html/test.j2c');
+    //init('../../test/fixtures/j2c/CT1.j2c');
+    init('../../extern/OpenJPH/subprojects/js/html/test.j2c');
 
     $('#imageSelector').change(function(e) {
       reset();

@@ -17,6 +17,8 @@
 #endif
 
 #include "FrameInfo.hpp"
+#include "Point.hpp"
+#include "Size.hpp"
 
 /// <summary>
 /// JavaScript API for decoding HTJ2K bistreams with OpenJPH
@@ -87,11 +89,33 @@ class HTJ2KDecoder {
     frameInfo_.componentCount = siz.get_num_components();
     frameInfo_.bitsPerSample = siz.get_bit_depth(0);
     frameInfo_.isSigned = siz.is_signed(0);
+    downSamples_.resize(frameInfo_.componentCount);
+    for(size_t i=0; i < frameInfo_.componentCount; i++) {
+      downSamples_[i].x = siz.get_downsampling(i).x;
+      downSamples_[i].y = siz.get_downsampling(i).y;
+    }
+
+    imageOffset_.x = siz.get_image_offset().x;
+    imageOffset_.y = siz.get_image_offset().y;
+    tileSize_.width = siz.get_tile_size().w;
+    tileSize_.height = siz.get_tile_size().h;
+    
+    tileOffset_.x = siz.get_tile_offset().x;
+    tileOffset_.y = siz.get_tile_offset().y;
 
     ojph::param_cod cod = codestream.access_cod();
     numDecompositions_ = cod.get_num_decompositions();
     isReversible_ = cod.is_reversible();
     progressionOrder_ = cod.get_progression_order();
+    blockDimensions_.width = cod.get_block_dims().w;
+    blockDimensions_.height = cod.get_block_dims().h;
+    precincts_.resize(numDecompositions_);
+    for(size_t i=0; i < numDecompositions_; i++) {
+      precincts_[i].width = cod.get_precinct_size(i).w;
+      precincts_[i].height = cod.get_precinct_size(i).h;
+    }
+    numLayers_ = cod.get_num_layers();
+    isUsingColorTransform_ = cod.is_using_color_transform();
 
     // allocate destination buffer
     const size_t bytesPerPixel = frameInfo_.bitsPerSample / 8;
@@ -186,12 +210,47 @@ class HTJ2KDecoder {
       return progressionOrder_;
   }
 
+  Point getDownSample(size_t component) const {
+    return downSamples_[component];
+  }
+
+  Point getImageOffset() const {
+    return imageOffset_;
+  }
+  Size getTileSize() const {
+    return tileSize_;
+  }
+  Point getTileOffset() const {
+    return tileOffset_;
+  }
+  Size getBlockDimensions() const {
+    return blockDimensions_;
+  }
+  Size getPrecinct(size_t level) const {
+    return precincts_[level];
+  }
+  int32_t getNumLayers() const {
+    return numLayers_;
+  }
+  bool getIsUsingColorTransform() const {
+    return isUsingColorTransform_;
+  }
+
   private:
     std::vector<uint8_t> encoded_;
     std::vector<uint8_t> decoded_;
     FrameInfo frameInfo_;
+
+    std::vector<Point> downSamples_;
     size_t numDecompositions_;
     bool isReversible_;
     size_t progressionOrder_;
+    Point imageOffset_;
+    Size tileSize_;
+    Point tileOffset_;
+    Size blockDimensions_;
+    std::vector<Size> precincts_;
+    int32_t numLayers_;
+    bool isUsingColorTransform_;
 };
 

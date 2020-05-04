@@ -22,6 +22,7 @@ function decode(encodedImagePath, iterations = 1) {
   console.log("Decode of " + encodedImagePath + " took " + ((decodeDurationInSeconds / iterations * 1000)) + " ms");
   const frameInfo = decoder.getFrameInfo();
   console.log('  frameInfo = ', frameInfo);
+  console.log(' imageOffset = ', decoder.getImageOffset());
   var decoded = decoder.getDecodedBuffer();
   console.log('  decoded length = ', decoded.length);
 
