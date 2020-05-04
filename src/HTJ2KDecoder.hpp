@@ -210,28 +210,52 @@ class HTJ2KDecoder {
       return progressionOrder_;
   }
 
+  /// <summary>
+  /// returns the down sampling used for component.
+  /// </summary>
   Point getDownSample(size_t component) const {
     return downSamples_[component];
   }
 
+  /// <summary>
+  /// returns the image offset
+  /// </summary>
   Point getImageOffset() const {
     return imageOffset_;
   }
+  /// <summary>
+  /// returns the tile size
+  /// </summary>
   Size getTileSize() const {
     return tileSize_;
   }
+  /// <summary>
+  /// returns the tile offset
+  /// </summary>
   Point getTileOffset() const {
     return tileOffset_;
   }
+  /// <summary>
+  /// returns the block dimensions
+  /// </summary>
   Size getBlockDimensions() const {
     return blockDimensions_;
   }
+  /// <summary>
+  /// returns the precinct for the specified resolution decomposition level
+  /// </summary>
   Size getPrecinct(size_t level) const {
     return precincts_[level];
   }
+  /// <summary>
+  /// returns the number of layers 
+  /// </summary>
   int32_t getNumLayers() const {
     return numLayers_;
   }
+  /// <summary>
+  /// returns whether or not a color transform is used 
+  /// </summary>
   bool getIsUsingColorTransform() const {
     return isUsingColorTransform_;
   }
@@ -240,7 +264,6 @@ class HTJ2KDecoder {
     std::vector<uint8_t> encoded_;
     std::vector<uint8_t> decoded_;
     FrameInfo frameInfo_;
-
     std::vector<Point> downSamples_;
     size_t numDecompositions_;
     bool isReversible_;

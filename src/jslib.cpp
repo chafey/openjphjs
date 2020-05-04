@@ -62,7 +62,14 @@ EMSCRIPTEN_BINDINGS(HTJ2KEncoder) {
     .function("encode", &HTJ2KEncoder::encode)
     .function("setDecompositions", &HTJ2KEncoder::setDecompositions)
     .function("setQuality", &HTJ2KEncoder::setQuality)
-    .function("setDecompositions", &HTJ2KEncoder::setDecompositions)
-    .function("setDecompositions", &HTJ2KEncoder::setDecompositions)
+    .function("setProgressionOrder", &HTJ2KEncoder::setProgressionOrder)
+    .function("setDownSample", &HTJ2KEncoder::setDownSample)
+    .function("setImageOffset", &HTJ2KEncoder::setImageOffset)
+    .function("setTileSize", &HTJ2KEncoder::setTileSize)
+    .function("setTileOffset", &HTJ2KEncoder::setTileOffset)
+    .function("setBlockDimensions", &HTJ2KEncoder::setBlockDimensions)
+    .function("setNumPrecincts", &HTJ2KEncoder::setNumPrecincts)
+    .function("setPrecinct", &HTJ2KEncoder::setPrecinct)
+    .function("setIsUsingColorTransform", &HTJ2KEncoder::setIsUsingColorTransform)
    ;
 }

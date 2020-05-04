@@ -32,7 +32,8 @@ class HTJ2KEncoder {
     decompositions_(5),
     lossless_(true),
     quantizationStep_(-1.0),
-    progressionOrder_(2) // RPCL
+    progressionOrder_(2), // RPCL
+    blockDimensions_(64,64)
   {
   }
 
@@ -54,6 +55,11 @@ class HTJ2KEncoder {
     frameInfo_ = frameInfo;
     const size_t bytesPerPixel = frameInfo_.bitsPerSample / 8;
     const size_t decodedSize = frameInfo_.width * frameInfo_.height * frameInfo_.componentCount * bytesPerPixel;
+    for (int c = 0; c < frameInfo_.componentCount; ++c) {
+        downSamples_[c].x = 1;
+        downSamples_[c].y = 1;
+    }
+
     decoded_.resize(decodedSize);
     return emscripten::val(emscripten::typed_memory_view(decoded_.size(), decoded_.data()));
   }
@@ -76,6 +82,10 @@ class HTJ2KEncoder {
   /// </summary>
  std::vector<uint8_t>& getDecodedBytes(const FrameInfo& frameInfo) {
     frameInfo_ = frameInfo;
+    for (int c = 0; c < frameInfo_.componentCount; ++c) {
+        downSamples_[c].x = 1;
+        downSamples_[c].y = 1;
+    }
     return decoded_;
   }
 
@@ -89,10 +99,11 @@ class HTJ2KEncoder {
 #endif
 
   /// <summary>
-  /// Sets the number of wavelet decompositions
+  /// Sets the number of wavelet decompositions and clears any precincts
   /// </summary>
   void setDecompositions(size_t decompositions) {
     decompositions_ = decompositions;
+    precincts_.resize(0);
   }
 
   /// <summary>
@@ -113,8 +124,65 @@ class HTJ2KEncoder {
   /// 3 = PCRL
   /// 4 = CPRL 
   /// </summary>
-  void setprogressionOrder(size_t progressionOrder) {
+  void setProgressionOrder(size_t progressionOrder) {
     progressionOrder_ = progressionOrder;
+  }
+
+  /// <summary>
+  /// Sets the down sampling for component
+  /// </summary>
+  void setDownSample(size_t component, Point downSample) {
+    downSamples_[component] = downSample;
+  }
+
+  /// <summary>
+  /// Sets the image offset
+  /// </summary>
+  void setImageOffset(Point imageOffset) {
+    imageOffset_ = imageOffset;
+  }
+
+  /// <summary>
+  /// Sets the tile size
+  /// </summary>
+  void setTileSize(Size tileSize) {
+    tileSize_ = tileSize_;
+  }
+
+  /// <summary>
+  /// Sets the tile offset
+  /// </summary>
+  void setTileOffset(Point tileOffset) {
+    tileOffset_ = tileOffset;
+  }
+
+  /// <summary>
+  /// Sets the block dimensions
+  /// </summary>
+  void setBlockDimensions(Size blockDimensions) {
+    blockDimensions_ = blockDimensions;
+  }
+
+  /// <summary>
+  /// Sets the number of precincts
+  /// </summary>
+  void setNumPrecincts(size_t numLevels) {
+    precincts_.resize(numLevels);
+  }
+
+  /// <summary>
+  /// Sets the precinct for the specified level.  You must
+  /// call setNumPrecincts with the number of levels first
+  /// </summary>
+  void setPrecinct(size_t level, Size precinct) {
+    precincts_[level] = precinct;
+  }
+
+  /// <summary>
+  /// Sets whether or not the color transform is used
+  /// </summary>
+  void setIsUsingColorTransform(bool isUsingColorTransform) {
+    isUsingColorTransform_ = isUsingColorTransform;
   }
 
   /// <summary>
@@ -133,20 +201,26 @@ class HTJ2KEncoder {
     int num_comps = frameInfo_.componentCount;
     siz.set_num_components(num_comps);
     for (int c = 0; c < num_comps; ++c)
-        siz.set_component(c, ojph::point(1, 1), frameInfo_.bitsPerSample, frameInfo_.isSigned);
-    siz.set_image_offset(ojph::point(0, 0));
-    siz.set_tile_size(ojph::size(0,0));
-    siz.set_tile_offset(ojph::point(0,0));
+        siz.set_component(c, ojph::point(downSamples_[c].x, downSamples_[c].y), frameInfo_.bitsPerSample, frameInfo_.isSigned);
+    siz.set_image_offset(ojph::point(imageOffset_.x, imageOffset_.y));
+    siz.set_tile_size(ojph::size(tileSize_.width,tileSize_.height));
+    siz.set_tile_offset(ojph::point(tileOffset_.x, tileOffset_.y));
 
     // Setup encoding parameters
     ojph::param_cod cod = codestream.access_cod();
     cod.set_num_decomposition(decompositions_);
-    cod.set_block_dims(64,64);
-    //if (num_precints != -1)
-    //    cod.set_precinct_size(num_precints, precinct_size);
+    cod.set_block_dims(blockDimensions_.width,blockDimensions_.height);
+    std::vector<ojph::size> precincts;
+    precincts.resize(precincts_.size());
+    for(size_t i=0; i < precincts_.size(); i++) {
+      precincts[i].w = precincts_[i].width;
+      precincts[i].h = precincts_[i].height;
+    }
+    cod.set_precinct_size(precincts_.size(), precincts.data());
+
     const char* progOrders[] = {"LRCP", "RLCP", "RPCL", "PCRL", "CPRL"};
     cod.set_progression_order(progOrders[progressionOrder_]);
-    cod.set_color_transform(false);
+    cod.set_color_transform(isUsingColorTransform_);
     cod.set_reversible(lossless_);
     if(!lossless_) {
       codestream.access_qcd().set_irrev_quant(quantizationStep_);
@@ -199,4 +273,12 @@ class HTJ2KEncoder {
     bool lossless_;
     float quantizationStep_;
     size_t progressionOrder_;
+
+    std::vector<Point> downSamples_;
+    Point imageOffset_;
+    Size tileSize_;
+    Point tileOffset_;
+    Size blockDimensions_;
+    std::vector<Size> precincts_;
+    bool isUsingColorTransform_;
 };
