@@ -28,10 +28,7 @@ class HTJ2KDecoder {
   /// <summary>
   /// Constructor for decoding a HTJ2K image from JavaScript.
   /// </summary>
-  HTJ2KDecoder() :
-    numDecompositions_(0),
-    isReversible_(false),
-    progressionOrder_(0)
+  HTJ2KDecoder()
   {
   }
 
@@ -126,7 +123,14 @@ class HTJ2KDecoder {
     if(frameInfo_.componentCount == 1) {
       codestream.set_planar(true);
     } else {
-      codestream.set_planar(false);
+      if(isUsingColorTransform_) {
+        codestream.set_planar(false);
+      } else {
+        // for color images without a color transform,
+        // calling set_planar(true) invokes an optimization
+        // https://github.com/aous72/OpenJPH/issues/34
+        codestream.set_planar(true);
+      }
     }
     codestream.create();
 
