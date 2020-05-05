@@ -158,7 +158,8 @@ class HTJ2KDecoder {
             uint8_t* pOut = &decoded_[lineStart] + c;
             for (size_t x = 0; x < frameInfo_.width; x++) {
               int val = line->i32[x];
-              pOut[x * frameInfo_.componentCount] = val;
+              // Clip values to [0..255] https://github.com/aous72/OpenJPH/issues/35
+              pOut[x * frameInfo_.componentCount] = std::max(0, std::min(val, 255));
             }
           } else {
             // This should work but has not been tested yet
