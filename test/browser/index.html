@@ -204,7 +204,7 @@ SPDX-License-Identifier: MIT
           //  * Offset the pixels so the smallest value is 0
           //  * Shift the pixels to display the most significant 8 bits
           const fullPixel = pixelData[inOffset++] + offset;
-          const value = (fullPixel >> bitShift);
+          let value = (fullPixel >> bitShift);
           imageData.data[outOffset] = value;
           imageData.data[outOffset + 1] = value;
           imageData.data[outOffset + 2] = value;

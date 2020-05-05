@@ -135,6 +135,7 @@ class HTJ2KDecoder {
     codestream.create();
 
     // Extract the data line by line...
+    // NOTE: All values must be clamped https://github.com/aous72/OpenJPH/issues/35
     int comp_num;
     for (int y = 0; y < frameInfo_.height; y++)
     {
@@ -142,13 +143,25 @@ class HTJ2KDecoder {
       if(frameInfo_.componentCount == 1) {
         ojph::line_buf *line = codestream.pull(comp_num);
         if(frameInfo_.bitsPerSample <= 8) {
-          std::copy(line->i32, line->i32 + frameInfo_.width, &decoded_[lineStart]);
+          unsigned char* pOut = (unsigned char*)&decoded_[lineStart];
+          for (size_t x = 0; x < frameInfo_.width; x++) {
+            int val = line->i32[x];
+            pOut[x * frameInfo_.componentCount] = std::max(0, std::min(val, UCHAR_MAX));
+          }
         } else {
           if(frameInfo_.isSigned) {
-            std::copy(line->i32, line->i32 + frameInfo_.width, (signed short*)&decoded_[lineStart]);
-          } else {
-            std::copy(line->i32, line->i32 + frameInfo_.width, (unsigned short*)&decoded_[lineStart]);
-          }
+              short* pOut = (short*)&decoded_[lineStart];
+              for (size_t x = 0; x < frameInfo_.width; x++) {
+                int val = line->i32[x];
+                pOut[x * frameInfo_.componentCount] = std::max(SHRT_MIN, std::min(val, SHRT_MAX));
+              }
+            } else {
+              unsigned short* pOut = (unsigned short*)&decoded_[lineStart] ;
+              for (size_t x = 0; x < frameInfo_.width; x++) {
+                  int val = line->i32[x];
+                  pOut[x * frameInfo_.componentCount] = std::max(0, std::min(val, USHRT_MAX));
+              }
+            }
         }
       } else {
         for (int c = 0; c < frameInfo_.componentCount; c++)
@@ -158,8 +171,7 @@ class HTJ2KDecoder {
             uint8_t* pOut = &decoded_[lineStart] + c;
             for (size_t x = 0; x < frameInfo_.width; x++) {
               int val = line->i32[x];
-              // Clip values to [0..255] https://github.com/aous72/OpenJPH/issues/35
-              pOut[x * frameInfo_.componentCount] = std::max(0, std::min(val, 255));
+              pOut[x * frameInfo_.componentCount] = std::max(0, std::min(val, UCHAR_MAX));
             }
           } else {
             // This should work but has not been tested yet
@@ -167,13 +179,13 @@ class HTJ2KDecoder {
               short* pOut = (short*)&decoded_[lineStart] + c;
               for (size_t x = 0; x < frameInfo_.width; x++) {
                 int val = line->i32[x];
-                pOut[x * frameInfo_.componentCount] = val;
+                pOut[x * frameInfo_.componentCount] = std::max(SHRT_MIN, std::min(val, SHRT_MAX));
               }
             } else {
               unsigned short* pOut = (unsigned short*)&decoded_[lineStart] + c;
               for (size_t x = 0; x < frameInfo_.width; x++) {
                   int val = line->i32[x];
-                  pOut[x * frameInfo_.componentCount] = val;
+                  pOut[x * frameInfo_.componentCount] = std::max(0, std::min(val, USHRT_MAX));
               }
             }
           }
