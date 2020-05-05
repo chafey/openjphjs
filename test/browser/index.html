@@ -34,7 +34,7 @@ SPDX-License-Identifier: MIT
           <option value="../../test/fixtures/j2c/XA1.j2c">XA1</option>
       </select>
       <button id="benchmark">Benchmark</button>
-     </div>
+      </div>
     </div>
     <div class="row">
         <div class="col-md-4">Status:<span id="status"></span></div>
@@ -76,6 +76,12 @@ SPDX-License-Identifier: MIT
     </div>
     <hr>
     <div class="row">
+      <div class="col-md-12">
+        <label for="quantizationRange">Encode with Lossy Quantization Factor: <span id="quantization">0.0000</span></label>
+        <input type="range" class="custom-range" id="quantizationRange" min="0" max="1000" value="0">
+      </div>
+    </div>
+    <div class="row">
       <div class="col-md-6">
         <canvas id='myCanvas' width="512" height="512"/>
     </div>
@@ -83,7 +89,10 @@ SPDX-License-Identifier: MIT
 </body>
 
 <script>
+  let decoder = undefined;
+  let encoder = undefined;
   let encodedBitStream = undefined;
+  let uncompressedImageFrame = undefined;
 
   function getMinMax(frameInfo, pixelData) {
     const numPixels = frameInfo.width * frameInfo.height * frameInfo.componentCount;
@@ -207,24 +216,23 @@ SPDX-License-Identifier: MIT
     $('#encodedSize').text('' + encodedBitStream.length.toLocaleString() + ' bytes');
 
     // Setup
-    let instance = new Module.HTJ2KDecoder();
-    const encodedBuffer = instance.getEncodedBuffer(encodedBitStream.length);
+    const encodedBuffer = decoder.getEncodedBuffer(encodedBitStream.length);
     let begin = performance.now(); // performance.now() returns value in milliseconds
     encodedBuffer.set(encodedBitStream);
     let end = performance.now();
 
     // warmup decode
-    instance.decode();
+    decoder.decode();
 
     // Decode
     begin = performance.now(); // performance.now() returns value in milliseconds
     for(let i=0; i < iterations; i++) {
-      instance.decode();
+      decoder.decode();
     }
     end = performance.now();
     $('#decodeTime').text(((end-begin) / iterations).toFixed(2) + ' ms');
 
-    const frameInfo = instance.getFrameInfo();
+    const frameInfo = decoder.getFrameInfo();
     //console.log(frameInfo);
 
     // Display image properties
@@ -232,36 +240,55 @@ SPDX-License-Identifier: MIT
     $('#pixelFormat').text(''+frameInfo.bitsPerSample +' bpp ' + (frameInfo.isSigned ? 'signed' : 'unsigned'));
     $('#componentCount').text(''+frameInfo.componentCount);
 
-    $('#imageOffset').text('' + instance.getImageOffset().x + ',' + instance.getImageOffset().y);
-    $('#tileSize').text('' + instance.getTileSize().width + 'x' + instance.getTileSize().height);
-    $('#tileOffset').text('' + instance.getTileOffset().x + ',' + instance.getTileOffset().y);
+    $('#imageOffset').text('' + decoder.getImageOffset().x + ',' + decoder.getImageOffset().y);
+    $('#tileSize').text('' + decoder.getTileSize().width + 'x' + decoder.getTileSize().height);
+    $('#tileOffset').text('' + decoder.getTileOffset().x + ',' + decoder.getTileOffset().y);
     let downSamplings = '';
     for(let i=0; i < frameInfo.componentCount; i++) {
-      downSamplings += instance.getDownSample(i).x + ',' + instance.getDownSample(i).y + ' ';
+      downSamplings += decoder.getDownSample(i).x + ',' + decoder.getDownSample(i).y + ' ';
     }
     $('#downSampling').text('' + downSamplings);
 
-    $('#numDecompositions').text('' + instance.getNumDecompositions());
-    $('#blockDimensions').text('' + instance.getBlockDimensions().width + 'x' + instance.getBlockDimensions().height);
-    $('#reversible').text('' + instance.getIsReversible());
+    $('#numDecompositions').text('' + decoder.getNumDecompositions());
+    $('#blockDimensions').text('' + decoder.getBlockDimensions().width + 'x' + decoder.getBlockDimensions().height);
+    $('#reversible').text('' + decoder.getIsReversible());
     let precints = '';
-    for(let i=0; i < instance.getNumDecompositions(); i++) {
-      precints += instance.getPrecinct(i).width + 'x' + instance.getPrecinct(i).height + ' ';
+    for(let i=0; i < decoder.getNumDecompositions(); i++) {
+      precints += decoder.getPrecinct(i).width + 'x' + decoder.getPrecinct(i).height + ' ';
     }
     $('#precincts').text('' + precints);
-    $('#numLayers').text('' + instance.getNumLayers());
-    $('#colorTransform').text('' + instance.getIsUsingColorTransform());
+    $('#numLayers').text('' + decoder.getNumLayers());
+    $('#colorTransform').text('' + decoder.getIsUsingColorTransform());
 
-    $('#progessionOrder').text(['LRCP', 'RLCP', 'RPCL', 'PCRL', 'CPRL'][instance.getProgressionOrder()]);
+    $('#progessionOrder').text(['LRCP', 'RLCP', 'RPCL', 'PCRL', 'CPRL'][decoder.getProgressionOrder()]);
 
     // Display Image
-    var decodedBuffer = instance.getDecodedBuffer();
+    var decodedBuffer = decoder.getDecodedBuffer();
     $('#decodedSize').text(''+decodedBuffer.length.toLocaleString() + " bytes");
     $('#compressionRatio').text('' + (decodedBuffer.length /encodedBitStream.length).toFixed(2) + ":1");
     display(frameInfo, decodedBuffer, 2);
+  }
 
-    // Free up memory
-    instance.delete();
+  function encode(quantization, iterations = 1) {
+    const decodedBytes = encoder.getDecodedBuffer(decoder.getFrameInfo());
+    decodedBytes.set(uncompressedImageFrame);
+    if(quantization < 0.00001) {
+      encoder.setQuality(true, quantization);
+    } else {
+      encoder.setQuality(false, quantization);
+    }
+    encoder.setIsUsingColorTransform(decoder.getFrameInfo().componentCount === 3);
+    //const encodeBegin = process.hrtime();
+    for(var i=0; i < iterations;i++) {
+      encoder.encode();
+    }
+    //const encodeDuration = process.hrtime(encodeBegin);
+    //const encodeDurationInSeconds = (encodeDuration[0] + (encodeDuration[1] / 1000000000));
+    
+    // print out information about the encode
+    const encodedBytes = encoder.getEncodedBuffer();
+    encodedBitStream = encodedBytes;
+    decode();
   }
 
   function load(url) {
@@ -273,6 +300,8 @@ SPDX-License-Identifier: MIT
       try {
         encodedBitStream = new Uint8Array(arrayBuffer);
         decode();
+        uncompressedImageFrame = new Uint8Array(decoder.getDecodedBuffer().length);
+        uncompressedImageFrame.set(decoder.getDecodedBuffer());
       }
       catch(ex) {
         $('#status').text('Exception thrown while parsing ' + ex);
@@ -307,6 +336,9 @@ SPDX-License-Identifier: MIT
   }
 
   Module.onRuntimeInitialized = async _ => {
+    decoder = new Module.HTJ2KDecoder();
+    encoder = new Module.HTJ2KEncoder();
+    
     //init('../../test/fixtures/j2c/CT1.j2c');
     init('../../extern/OpenJPH/subprojects/js/html/test.j2c');
 
@@ -321,6 +353,15 @@ SPDX-License-Identifier: MIT
         decode(50)
         $('#status').text('');
       }, 1);
+    });
+
+    $('#quantizationRange').on('input', function(e) {
+      let quantization = parseFloat($(this).val()) / 10000;
+      if(decoder.getFrameInfo().bitsPerSample > 8) {
+        quantization /= 10;
+      }
+      $('#quantization').text('' + quantization.toFixed(5));
+      encode(quantization);
     });
 
     // this function gets called once the user drops the file onto the div

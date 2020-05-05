@@ -225,8 +225,9 @@ class HTJ2KEncoder {
     if(!lossless_) {
       codestream.access_qcd().set_irrev_quant(quantizationStep_);
     }
+    codestream.set_planar(isUsingColorTransform_ == false);
     codestream.write_headers(&encoded_);
-
+  
     // Encode the image
     const size_t bytesPerPixel = frameInfo_.bitsPerSample / 8;
     int next_comp;
@@ -239,9 +240,10 @@ class HTJ2KEncoder {
       {
         int* dp = cur_line->i32;
         if(frameInfo_.bitsPerSample <= 8) {
-          uint8_t* pIn = (uint8_t*)(decoded_.data() + (y * frameInfo_.width * bytesPerPixel));
+          uint8_t* pIn = (uint8_t*)(decoded_.data() + (y * frameInfo_.width * bytesPerPixel * siz.get_num_components()) + c);
           for(size_t x=0; x < frameInfo_.width; x++) {
-            *dp++ = *pIn++;
+            *dp++ = *pIn;
+            pIn+=siz.get_num_components();
           }
         } else {
           if(frameInfo_.isSigned) {
