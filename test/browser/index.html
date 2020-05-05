@@ -32,15 +32,16 @@ SPDX-License-Identifier: MIT
           <option value="../../test/fixtures/j2c/RG3.j2c">RG3</option>
           <option value="../../test/fixtures/j2c/SC1.j2c">SC1</option>
           <option value="../../test/fixtures/j2c/XA1.j2c">XA1</option>
-      </select>
-      <button id="benchmark">Benchmark</button>
+        </select>
+        <button id="benchmark">Benchmark</button>
+        <span>Status:</span><span id="status"></span>
       </div>
     </div>
     <div class="row">
-        <div class="col-md-4">Status:<span id="status"></span></div>
-        <div class="col-md-4">Decode Time: <span id="decodeTime"></span></div>
-        <div class="col-md-4">Display Time: <span id="displayTime"></span></div>
-      </div>
+      <div class="col-md-4">Encode Time: <span id="encodeTime"></span></div>
+      <div class="col-md-4">Decode Time: <span id="decodeTime"></span></div>
+      <div class="col-md-4">Display Time: <span id="displayTime"></span></div>
+    </div>
     <div class="row">
       <div class="col-md-4">Encoded Size: <span id="encodedSize"></span></div>
       <div class="col-md-4">Decoded Size: <span id="decodedSize"></span></div>
@@ -77,9 +78,28 @@ SPDX-License-Identifier: MIT
     <hr>
     <div class="row">
       <div class="col-md-12">
-        <label for="quantizationRange">Encode with Lossy Quantization Factor: <span id="quantization">0.0000</span></label>
+        <b>Encoding Parameters</b>  
+      </div>
+      </div>
+        <div class="row">
+      <div class="col-md-12">
+        <span>Lossy Quantization Factor: </span><span id="quantization">0.0000</span>
         <input type="range" class="custom-range" id="quantizationRange" min="0" max="1000" value="0">
       </div>
+    </div>
+    <div class="row">
+      
+      <div class="col-md-12">
+        <button id="download">Download</button>
+        Progression Order:
+        <select id="progressionOrderSelector">
+          <option value="0">LRCP</option>
+          <option value="1">RLCP</option>
+          <option value="2" selected>RPCL</option>
+          <option value="3">PCRL</option>
+          <option value="4">CPRL</option>
+        </select>
+        </div>
     </div>
     <div class="row">
       <div class="col-md-6">
@@ -93,6 +113,10 @@ SPDX-License-Identifier: MIT
   let encoder = undefined;
   let encodedBitStream = undefined;
   let uncompressedImageFrame = undefined;
+  let frameInfo = undefined;
+  let quantization = 0;
+  let minMax = undefined;
+  let progressionOrder = undefined;
 
   function getMinMax(frameInfo, pixelData) {
     const numPixels = frameInfo.width * frameInfo.height * frameInfo.componentCount;
@@ -146,7 +170,10 @@ SPDX-License-Identifier: MIT
     var planeSize = frameInfo.width * frameInfo.height;
     var inOffset = 0;
    
-    const minMax = getMinMax(frameInfo, pixelData);
+    if(!minMax) {
+      minMax = getMinMax(frameInfo, pixelData);
+    }
+
     //console.log(minMax);
     let dynamicRange = minMax.max - minMax.min;
     //console.log('dynamicRange=', dynamicRange);
@@ -232,10 +259,11 @@ SPDX-License-Identifier: MIT
     end = performance.now();
     $('#decodeTime').text(((end-begin) / iterations).toFixed(2) + ' ms');
 
-    const frameInfo = decoder.getFrameInfo();
+    frameInfo = decoder.getFrameInfo();
     //console.log(frameInfo);
 
     // Display image properties
+    $('#status').text('OK');
     $('#resolution').text(''+frameInfo.width + 'x' + frameInfo.height);
     $('#pixelFormat').text(''+frameInfo.bitsPerSample +' bpp ' + (frameInfo.isSigned ? 'signed' : 'unsigned'));
     $('#componentCount').text(''+frameInfo.componentCount);
@@ -261,6 +289,7 @@ SPDX-License-Identifier: MIT
     $('#colorTransform').text('' + decoder.getIsUsingColorTransform());
 
     $('#progessionOrder').text(['LRCP', 'RLCP', 'RPCL', 'PCRL', 'CPRL'][decoder.getProgressionOrder()]);
+    progressionOrder = decoder.getProgressionOrder();
 
     // Display Image
     var decodedBuffer = decoder.getDecodedBuffer();
@@ -270,7 +299,8 @@ SPDX-License-Identifier: MIT
   }
 
   function encode(quantization, iterations = 1) {
-    const decodedBytes = encoder.getDecodedBuffer(decoder.getFrameInfo());
+    // Setup buffer
+    const decodedBytes = encoder.getDecodedBuffer(frameInfo);
     decodedBytes.set(uncompressedImageFrame);
     if(quantization < 0.00001) {
       encoder.setQuality(true, quantization);
@@ -278,17 +308,15 @@ SPDX-License-Identifier: MIT
       encoder.setQuality(false, quantization);
     }
     encoder.setIsUsingColorTransform(decoder.getFrameInfo().componentCount === 3);
-    //const encodeBegin = process.hrtime();
-    for(var i=0; i < iterations;i++) {
+    encoder.setProgressionOrder(progressionOrder);
+    
+    // Do the encode
+    begin = performance.now(); // performance.now() returns value in milliseconds
+    for(let i=0; i < iterations; i++) {
       encoder.encode();
     }
-    //const encodeDuration = process.hrtime(encodeBegin);
-    //const encodeDurationInSeconds = (encodeDuration[0] + (encodeDuration[1] / 1000000000));
-    
-    // print out information about the encode
-    const encodedBytes = encoder.getEncodedBuffer();
-    encodedBitStream = encodedBytes;
-    decode();
+    end = performance.now();
+    $('#encodeTime').text(((end-begin) / iterations).toFixed(2) + ' ms');
   }
 
   function load(url) {
@@ -312,19 +340,24 @@ SPDX-License-Identifier: MIT
   }
 
   function reset() {
+    minMax = undefined;
     const c = document.getElementById("myCanvas");
     const ctx = c.getContext("2d");
     ctx.fillRect(0,0,c.width, c.height);
-    $('#status').text('');
+    $('#status').text('OK');
+
+    $('#encodeTime').text('');
+    $('#decodeTime').text('');
+    $('#displayTime').text('');
+
     $('#encodedSize').text('');
     $('#decodedSize').text('');
     $('#compressionRatio').text('');
-    $('#decodeTime').text('');
-    $('#displayTime').text('');
-    $('#width').text('');
-    $('#height').text('');
-    $('#bitsPerSample').text('');
+
+    $('#resolution').text('');
+    $('#pixelFormat').text('');
     $('#componentCount').text('');
+    
     $('#reversible').text('');
     $('#numDecompositions').text('');
     $('#progessionOrder').text('');
@@ -349,21 +382,36 @@ SPDX-License-Identifier: MIT
       load(e.target.options[e.target.selectedIndex].value);
     });
 
+    $('#progressionOrderSelector').change(function(e) {
+      progressionOrder = parseInt(e.target.options[e.target.selectedIndex].value);
+      encode(quantization);
+       // Get the encoded bytes and display them
+      const encodedBytes = encoder.getEncodedBuffer();
+      encodedBitStream = encodedBytes;
+      decode();
+    });
+
     $('#benchmark').click(function(e) {
       $('#status').text('Please wait while benchmark runs....');
       setTimeout(() => {
-        decode(50)
-        $('#status').text('');
+        const iterations = 50;
+        decode(iterations)
+        encode(quantization, iterations)
+        $('#status').text('OK - ' + iterations + ' iterations encode/decode');
       }, 1);
     });
 
     $('#quantizationRange').on('input', function(e) {
-      let quantization = parseFloat($(this).val()) / 10000;
+      quantization = parseFloat($(this).val()) / 10000;
       if(decoder.getFrameInfo().bitsPerSample > 8) {
         quantization /= 10;
       }
       $('#quantization').text('' + quantization.toFixed(5));
       encode(quantization);
+       // Get the encoded bytes and display them
+      const encodedBytes = encoder.getEncodedBuffer();
+      encodedBitStream = encodedBytes;
+      decode();
     });
 
     // this function gets called once the user drops the file onto the div
@@ -402,7 +450,14 @@ SPDX-License-Identifier: MIT
     var dropZone = document.getElementById('myCanvas');
     dropZone.addEventListener('dragover', handleDragOver, false);
     dropZone.addEventListener('drop', handleFileSelect, false);
-
   }
+
+  $('#download').click(function() {
+    // download the de-identified DICOM P10 bytestream
+    var blob = new Blob([encodedBitStream], {type: "image/j2c"});
+    var url = window.URL.createObjectURL(blob);
+    window.open(url);
+    window.URL.revokeObjectURL(url);
+  });
 </script>
 </html>
