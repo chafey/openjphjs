@@ -5,6 +5,7 @@
 
 #include <exception>
 #include <memory>
+#include <limits.h>
 
 #include <ojph_arch.h>
 #include <ojph_file.h>
@@ -68,6 +69,31 @@ class HTJ2KDecoder {
       return decoded_;
   }
 #endif
+ 
+  /// <summary>
+  /// Reads the header from an encoded HTJ2K bitstream.  The caller must have
+  /// copied the HTJ2K encoded bitstream into the encoded buffer before 
+  /// calling this method, see getEncodedBuffer() and getEncodedBytes() above.
+  /// </summary>
+  void readHeader() {
+    ojph::codestream codestream;
+    ojph::mem_infile mem_file;
+    mem_file.open(encoded_.data(), encoded_.size());
+    readHeader_(codestream, mem_file);
+  }
+
+  /// <summary>
+  /// Calculates the resolution for a given decomposition level based on the
+  /// current values in FrameInfo (which is populated via readHeader() and
+  /// decode()).  level = 0 = full res, level = _numDecompositions = lowest resolution
+  /// </summary>
+  Size calculateSizeAtDecompositionLevel(int decompositionLevel) {
+    ojph::size extent;
+    extent.w = frameInfo_.width;
+    extent.h = frameInfo_.height;
+    ojph::size resolution = ojph::calculate_decomposition_resolution(extent, decompositionLevel);
+    return Size(resolution.w, resolution.h);
+  }
 
   /// <summary>
   /// Decodes the encoded HTJ2K bitstream.  The caller must have copied the
@@ -75,123 +101,21 @@ class HTJ2KDecoder {
   /// method, see getEncodedBuffer() and getEncodedBytes() above.
   /// </summary>
   void decode() {
-    // Parse the header
     ojph::codestream codestream;
     ojph::mem_infile mem_file;
     mem_file.open(encoded_.data(), encoded_.size());
-    codestream.read_headers(&mem_file);
-    ojph::param_siz siz = codestream.access_siz();
-    frameInfo_.width = siz.get_image_extent().x - siz.get_image_offset().x;
-    frameInfo_.height = siz.get_image_extent().y - siz.get_image_offset().y;
-    frameInfo_.componentCount = siz.get_num_components();
-    frameInfo_.bitsPerSample = siz.get_bit_depth(0);
-    frameInfo_.isSigned = siz.is_signed(0);
-    downSamples_.resize(frameInfo_.componentCount);
-    for(size_t i=0; i < frameInfo_.componentCount; i++) {
-      downSamples_[i].x = siz.get_downsampling(i).x;
-      downSamples_[i].y = siz.get_downsampling(i).y;
-    }
+    readHeader_(codestream, mem_file);
 
-    imageOffset_.x = siz.get_image_offset().x;
-    imageOffset_.y = siz.get_image_offset().y;
-    tileSize_.width = siz.get_tile_size().w;
-    tileSize_.height = siz.get_tile_size().h;
-    
-    tileOffset_.x = siz.get_tile_offset().x;
-    tileOffset_.y = siz.get_tile_offset().y;
+    decode_(codestream, frameInfo_, 0);
+  }
 
-    ojph::param_cod cod = codestream.access_cod();
-    numDecompositions_ = cod.get_num_decompositions();
-    isReversible_ = cod.is_reversible();
-    progressionOrder_ = cod.get_progression_order();
-    blockDimensions_.width = cod.get_block_dims().w;
-    blockDimensions_.height = cod.get_block_dims().h;
-    precincts_.resize(numDecompositions_);
-    for(size_t i=0; i < numDecompositions_; i++) {
-      precincts_[i].width = cod.get_precinct_size(i).w;
-      precincts_[i].height = cod.get_precinct_size(i).h;
-    }
-    numLayers_ = cod.get_num_layers();
-    isUsingColorTransform_ = cod.is_using_color_transform();
+  void decodeSubResolution(size_t decompositionLevel) {
+    ojph::codestream codestream;
+    ojph::mem_infile mem_file;
+    mem_file.open(encoded_.data(), encoded_.size());
+    readHeader_(codestream, mem_file);
 
-    // allocate destination buffer
-    const size_t bytesPerPixel = frameInfo_.bitsPerSample / 8;
-    const size_t destinationSize = frameInfo_.width * frameInfo_.height * frameInfo_.componentCount * bytesPerPixel;
-    decoded_.resize(destinationSize);
-
-    // parse it
-    if(frameInfo_.componentCount == 1) {
-      codestream.set_planar(true);
-    } else {
-      if(isUsingColorTransform_) {
-        codestream.set_planar(false);
-      } else {
-        // for color images without a color transform,
-        // calling set_planar(true) invokes an optimization
-        // https://github.com/aous72/OpenJPH/issues/34
-        codestream.set_planar(true);
-      }
-    }
-    codestream.create();
-
-    // Extract the data line by line...
-    // NOTE: All values must be clamped https://github.com/aous72/OpenJPH/issues/35
-    int comp_num;
-    for (int y = 0; y < frameInfo_.height; y++)
-    {
-      size_t lineStart = y * frameInfo_.width * frameInfo_.componentCount * bytesPerPixel;
-      if(frameInfo_.componentCount == 1) {
-        ojph::line_buf *line = codestream.pull(comp_num);
-        if(frameInfo_.bitsPerSample <= 8) {
-          unsigned char* pOut = (unsigned char*)&decoded_[lineStart];
-          for (size_t x = 0; x < frameInfo_.width; x++) {
-            int val = line->i32[x];
-            pOut[x * frameInfo_.componentCount] = std::max(0, std::min(val, UCHAR_MAX));
-          }
-        } else {
-          if(frameInfo_.isSigned) {
-              short* pOut = (short*)&decoded_[lineStart];
-              for (size_t x = 0; x < frameInfo_.width; x++) {
-                int val = line->i32[x];
-                pOut[x * frameInfo_.componentCount] = std::max(SHRT_MIN, std::min(val, SHRT_MAX));
-              }
-            } else {
-              unsigned short* pOut = (unsigned short*)&decoded_[lineStart] ;
-              for (size_t x = 0; x < frameInfo_.width; x++) {
-                  int val = line->i32[x];
-                  pOut[x * frameInfo_.componentCount] = std::max(0, std::min(val, USHRT_MAX));
-              }
-            }
-        }
-      } else {
-        for (int c = 0; c < frameInfo_.componentCount; c++)
-        {
-          ojph::line_buf *line = codestream.pull(comp_num);
-          if(frameInfo_.bitsPerSample <= 8) {
-            uint8_t* pOut = &decoded_[lineStart] + c;
-            for (size_t x = 0; x < frameInfo_.width; x++) {
-              int val = line->i32[x];
-              pOut[x * frameInfo_.componentCount] = std::max(0, std::min(val, UCHAR_MAX));
-            }
-          } else {
-            // This should work but has not been tested yet
-            if(frameInfo_.isSigned) {
-              short* pOut = (short*)&decoded_[lineStart] + c;
-              for (size_t x = 0; x < frameInfo_.width; x++) {
-                int val = line->i32[x];
-                pOut[x * frameInfo_.componentCount] = std::max(SHRT_MIN, std::min(val, SHRT_MAX));
-              }
-            } else {
-              unsigned short* pOut = (unsigned short*)&decoded_[lineStart] + c;
-              for (size_t x = 0; x < frameInfo_.width; x++) {
-                  int val = line->i32[x];
-                  pOut[x * frameInfo_.componentCount] = std::max(0, std::min(val, USHRT_MAX));
-              }
-            }
-          }
-        }
-      }
-    }
+    decode_(codestream, frameInfo_, decompositionLevel);
   }
 
   /// <summary>
@@ -278,6 +202,128 @@ class HTJ2KDecoder {
   }
 
   private:
+
+    void readHeader_(ojph::codestream& codestream, ojph::mem_infile& mem_file) {
+      codestream.read_headers(&mem_file);
+      ojph::param_siz siz = codestream.access_siz();
+      frameInfo_.width = siz.get_image_extent().x - siz.get_image_offset().x;
+      frameInfo_.height = siz.get_image_extent().y - siz.get_image_offset().y;
+      frameInfo_.componentCount = siz.get_num_components();
+      frameInfo_.bitsPerSample = siz.get_bit_depth(0);
+      frameInfo_.isSigned = siz.is_signed(0);
+      downSamples_.resize(frameInfo_.componentCount);
+      for(size_t i=0; i < frameInfo_.componentCount; i++) {
+        downSamples_[i].x = siz.get_downsampling(i).x;
+        downSamples_[i].y = siz.get_downsampling(i).y;
+      }
+
+      imageOffset_.x = siz.get_image_offset().x;
+      imageOffset_.y = siz.get_image_offset().y;
+      tileSize_.width = siz.get_tile_size().w;
+      tileSize_.height = siz.get_tile_size().h;
+      
+      tileOffset_.x = siz.get_tile_offset().x;
+      tileOffset_.y = siz.get_tile_offset().y;
+
+      ojph::param_cod cod = codestream.access_cod();
+      numDecompositions_ = cod.get_num_decompositions();
+      isReversible_ = cod.is_reversible();
+      progressionOrder_ = cod.get_progression_order();
+      blockDimensions_.width = cod.get_block_dims().w;
+      blockDimensions_.height = cod.get_block_dims().h;
+      precincts_.resize(numDecompositions_);
+      for(size_t i=0; i < numDecompositions_; i++) {
+        precincts_[i].width = cod.get_precinct_size(i).w;
+        precincts_[i].height = cod.get_precinct_size(i).h;
+      }
+      numLayers_ = cod.get_num_layers();
+      isUsingColorTransform_ = cod.is_using_color_transform();
+    }
+
+    void decode_(ojph::codestream& codestream, const FrameInfo& frameInfo, size_t decompositionLevel) {
+      
+      Size sizeAtDecompositionLevel = calculateSizeAtDecompositionLevel(decompositionLevel);
+      int resolutionLevel = numDecompositions_ - decompositionLevel;
+      // allocate destination buffer
+      const size_t bytesPerPixel = frameInfo.bitsPerSample / 8;
+      const size_t destinationSize = sizeAtDecompositionLevel.width * sizeAtDecompositionLevel.height * frameInfo.componentCount * bytesPerPixel;
+      decoded_.resize(destinationSize);
+      
+      // parse it
+      if(frameInfo.componentCount == 1) {
+        codestream.set_planar(true);
+      } else {
+        if(isUsingColorTransform_) {
+          codestream.set_planar(false);
+        } else {
+          // for color images without a color transform,
+          // calling set_planar(true) invokes an optimization
+          // https://github.com/aous72/OpenJPH/issues/34
+          codestream.set_planar(true);
+        }
+      }
+      codestream.create();
+
+      // Extract the data line by line...
+      // NOTE: All values must be clamped https://github.com/aous72/OpenJPH/issues/35
+      int comp_num;
+      for (int y = 0; y < sizeAtDecompositionLevel.height; y++)
+      {
+        size_t lineStart = y * sizeAtDecompositionLevel.width * frameInfo.componentCount * bytesPerPixel;
+        if(frameInfo.componentCount == 1) {
+          ojph::line_buf *line = codestream.pull(comp_num, resolutionLevel);
+          if(frameInfo.bitsPerSample <= 8) {
+            unsigned char* pOut = (unsigned char*)&decoded_[lineStart];
+            for (size_t x = 0; x < sizeAtDecompositionLevel.width; x++) {
+              int val = line->i32[x];
+              pOut[x * frameInfo.componentCount] = std::max(0, std::min(val, UCHAR_MAX));
+            }
+          } else {
+            if(frameInfo.isSigned) {
+              short* pOut = (short*)&decoded_[lineStart];
+              for (size_t x = 0; x < sizeAtDecompositionLevel.width; x++) {
+                int val = line->i32[x];
+                pOut[x * frameInfo.componentCount] = std::max(SHRT_MIN, std::min(val, SHRT_MAX));
+              }
+            } else {
+              unsigned short* pOut = (unsigned short*)&decoded_[lineStart] ;
+              for (size_t x = 0; x < sizeAtDecompositionLevel.width; x++) {
+                  int val = line->i32[x];
+                  pOut[x * frameInfo.componentCount] = std::max(0, std::min(val, USHRT_MAX));
+              }
+            }
+          }
+        } else {
+          for (int c = 0; c < frameInfo.componentCount; c++)
+          {
+            ojph::line_buf *line = codestream.pull(comp_num, resolutionLevel);
+            if(frameInfo.bitsPerSample <= 8) {
+              uint8_t* pOut = &decoded_[lineStart] + c;
+              for (size_t x = 0; x < sizeAtDecompositionLevel.width; x++) {
+                int val = line->i32[x];
+                pOut[x * frameInfo.componentCount] = std::max(0, std::min(val, UCHAR_MAX));
+              }
+            } else {
+              // This should work but has not been tested yet
+              if(frameInfo.isSigned) {
+                short* pOut = (short*)&decoded_[lineStart] + c;
+                for (size_t x = 0; x < sizeAtDecompositionLevel.width; x++) {
+                  int val = line->i32[x];
+                  pOut[x * frameInfo.componentCount] = std::max(SHRT_MIN, std::min(val, SHRT_MAX));
+                }
+              } else {
+                unsigned short* pOut = (unsigned short*)&decoded_[lineStart] + c;
+                for (size_t x = 0; x < sizeAtDecompositionLevel.width; x++) {
+                    int val = line->i32[x];
+                    pOut[x * frameInfo.componentCount] = std::max(0, std::min(val, USHRT_MAX));
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
     std::vector<uint8_t> encoded_;
     std::vector<uint8_t> decoded_;
     FrameInfo frameInfo_;

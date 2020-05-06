@@ -37,7 +37,12 @@ SPDX-License-Identifier: MIT
         <span>Status:</span><span id="status"></span>
       </div>
     </div>
-    <div class="row">
+  <div class="row">
+      <div class="col-md-12">
+      <b>Image Properties</b>  
+    </div>
+  </div>
+  <div class="row">
       <div class="col-md-4">Encode Time: <span id="encodeTime"></span></div>
       <div class="col-md-4">Decode Time: <span id="decodeTime"></span></div>
       <div class="col-md-4">Display Time: <span id="displayTime"></span></div>
@@ -46,14 +51,12 @@ SPDX-License-Identifier: MIT
       <div class="col-md-4">Encoded Size: <span id="encodedSize"></span></div>
       <div class="col-md-4">Decoded Size: <span id="decodedSize"></span></div>
       <div class="col-md-4">Compression Ratio: <span id="compressionRatio"></span></div>
-    </div>
-    <hr>
+     </div>
     <div class="row">
       <div class="col-md-4">Resolution: <span id="resolution"></span></div>
       <div class="col-md-4">Pixel Format: <span id="pixelFormat"></span></div>
       <div class="col-md-4">Component Count: <span id="componentCount"></span></div>
     </div>
-    <hr>
     <div class="row">
       <div class="col-md-4">Image Offset: <span id="imageOffset"></span></div>
       <div class="col-md-4">Tile Size: <span id="tileSize"></span></div>
@@ -75,6 +78,22 @@ SPDX-License-Identifier: MIT
     <div class="row">
       <div class="col-md-12">Precincts: <span id="precincts"></span></div>
     </div>
+    <div class="row">
+      <div class="col-md-12">Sub Resolutions: <span id="subResolutions"></span></div>
+    </div>
+    <hr>
+    <div class="row">
+      <div class="col-md-12">
+        <b>Decoding Parameters</b>  
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-12">
+        <span>Level: </span><span id="decodeLevel">0</span>
+        <input type="range" class="custom-range" id="decodeLevelRange" min="0" max="5" value="0">
+      </div>
+    </div>
+
     <hr>
     <div class="row">
       <div class="col-md-12">
@@ -99,7 +118,19 @@ SPDX-License-Identifier: MIT
           <option value="3">PCRL</option>
           <option value="4">CPRL</option>
         </select>
-        </div>
+        Decompositions:
+        <select id="decompositionsSelector">
+          <option value="0">0</option>
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5" selected>5</option>
+          <option value="6">6</option>
+          <option value="7">7</option>
+          <option value="8">8</option>
+        </select>        
+      </div>
     </div>
     <div class="row">
       <div class="col-md-6">
@@ -117,6 +148,8 @@ SPDX-License-Identifier: MIT
   let quantization = 0;
   let minMax = undefined;
   let progressionOrder = undefined;
+  let decodeLevel = 0;
+  let numDecompositionsToEncode = 5;
 
   function getMinMax(frameInfo, pixelData) {
     const numPixels = frameInfo.width * frameInfo.height * frameInfo.componentCount;
@@ -249,18 +282,22 @@ SPDX-License-Identifier: MIT
     let end = performance.now();
 
     // warmup decode
-    decoder.decode();
+    decoder.readHeader();
+    const resolutionAtLevel = decoder.calculateSizeAtDecompositionLevel(decodeLevel);
+
+    $('#decodeLevel').text('' + decodeLevel + ' (' + resolutionAtLevel.width + 'x' + resolutionAtLevel.height + ')');
+    $('#decodeLevelRange').attr('max', decoder.getNumDecompositions());
+    
 
     // Decode
     begin = performance.now(); // performance.now() returns value in milliseconds
     for(let i=0; i < iterations; i++) {
-      decoder.decode();
+      decoder.decodeSubResolution(decodeLevel);
     }
     end = performance.now();
     $('#decodeTime').text(((end-begin) / iterations).toFixed(2) + ' ms');
 
     frameInfo = decoder.getFrameInfo();
-    //console.log(frameInfo);
 
     // Display image properties
     $('#status').text('OK');
@@ -295,7 +332,18 @@ SPDX-License-Identifier: MIT
     var decodedBuffer = decoder.getDecodedBuffer();
     $('#decodedSize').text(''+decodedBuffer.length.toLocaleString() + " bytes");
     $('#compressionRatio').text('' + (decodedBuffer.length /encodedBitStream.length).toFixed(2) + ":1");
+   
+    let subResolutions = '';
+    for(let i=0; i < decoder.getNumDecompositions(); i++) {
+      const resolution = decoder.calculateSizeAtDecompositionLevel(i);
+      subResolutions += resolution.width + 'x' + resolution.height + ' ';
+    }
+    $('#subResolutions').text('' + subResolutions);
+    
+    frameInfo.width = resolutionAtLevel.width;
+    frameInfo.height = resolutionAtLevel.height;    //console.log(frameInfo);
     display(frameInfo, decodedBuffer, 2);
+    frameInfo = decoder.getFrameInfo();
   }
 
   function encode(quantization, iterations = 1) {
@@ -307,6 +355,7 @@ SPDX-License-Identifier: MIT
     } else {
       encoder.setQuality(false, quantization);
     }
+    encoder.setDecompositions(numDecompositionsToEncode);
     encoder.setIsUsingColorTransform(decoder.getFrameInfo().componentCount === 3);
     encoder.setProgressionOrder(progressionOrder);
     
@@ -340,6 +389,7 @@ SPDX-License-Identifier: MIT
   }
 
   function reset() {
+    decodeLevel = 0;
     minMax = undefined;
     const c = document.getElementById("myCanvas");
     const ctx = c.getContext("2d");
@@ -382,8 +432,24 @@ SPDX-License-Identifier: MIT
       load(e.target.options[e.target.selectedIndex].value);
     });
 
+    $('#decodeLevelRange').on('input', function(e) {
+      decodeLevel = parseInt($(this).val());
+      const resolutionAtLevel = decoder.calculateSizeAtDecompositionLevel(decodeLevel);
+      $('#decodeLevel').text('' + decodeLevel + ' (' + resolutionAtLevel.width + 'x' + resolutionAtLevel.height + ')');
+      decode();
+    });
+
     $('#progressionOrderSelector').change(function(e) {
       progressionOrder = parseInt(e.target.options[e.target.selectedIndex].value);
+      encode(quantization);
+       // Get the encoded bytes and display them
+      const encodedBytes = encoder.getEncodedBuffer();
+      encodedBitStream = encodedBytes;
+      decode();
+    });
+
+    $('#decompositionsSelector').change(function(e) {
+      numDecompositionsToEncode = parseInt(e.target.options[e.target.selectedIndex].value);
       encode(quantization);
        // Get the encoded bytes and display them
       const encodedBytes = encoder.getEncodedBuffer();
@@ -399,6 +465,20 @@ SPDX-License-Identifier: MIT
         encode(quantization, iterations)
         $('#status').text('OK - ' + iterations + ' iterations encode/decode');
       }, 1);
+    });
+
+    $('#bytesDecodedRange').on('input', function(e) {
+      bytePercent = parseFloat($(this).val());
+      console.log('bytePercent =', bytePercent);
+      const numBytes = Math.floor(encodedBitStream.length * bytePercent / 100);
+      console.log('numBytes=', numBytes);
+      const fullEncodedBitStream = encodedBitStream.slice(0, numBytes);
+      //encodedBitStream = new Uint8Array(numBytes);
+      //encodedBitStream.set(fullEncodedBitStream);
+      console.log(encodedBitStream.length);
+      $('#bytesDecoded').text('' + bytePercent + "% (" + numBytes + " bytes)");
+      decode();
+      encodedBitStream = fullEncodedBitStream;
     });
 
     $('#quantizationRange').on('input', function(e) {

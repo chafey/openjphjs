@@ -65,8 +65,11 @@ void decodeFile(const char* path) {
 
     timespec start, finish, delta;
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
+    decoder.readHeader();
+    //Size resolutionAtLevel = decoder.calculateDecompositionLevel(1);
+    //std::cout << resolutionAtLevel.width << ',' << resolutionAtLevel.height << std::endl;
 
-    decoder.decode();
+    decoder.decodeSubResolution(1);
 
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &finish);
     sub_timespec(start, finish, &delta);
@@ -97,8 +100,8 @@ void encodeFile(const char* inPath, const FrameInfo frameInfo, const char* outPa
 
 int main(int argc, char** argv) {
     decodeFile("test/fixtures/j2c/CT1.j2c");
-    decodeFile("test/fixtures/j2c/CT2.j2c");
-    decodeFile("test/fixtures/j2c/MG1.j2c");
+    //decodeFile("test/fixtures/j2c/CT2.j2c");
+    //decodeFile("test/fixtures/j2c/MG1.j2c");
 
     //encodeFile("test/fixtures/raw/CT1.RAW", {.width = 512, .height = 512, .bitsPerSample = 16, .componentCount = 1, .isSigned = true}, "test/fixtures/j2c/CT1.j2c");
     return 0;
