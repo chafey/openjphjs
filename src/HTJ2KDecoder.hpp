@@ -61,6 +61,7 @@ class HTJ2KDecoder {
   std::vector<uint8_t>& getEncodedBytes() {
       return encoded_;
   }
+
   /// <summary>
   /// Returns the buffer to store the decoded bytes.  This method is not exported
   /// to JavaScript, it is intended to be called by C++ code
@@ -105,16 +106,20 @@ class HTJ2KDecoder {
     ojph::mem_infile mem_file;
     mem_file.open(encoded_.data(), encoded_.size());
     readHeader_(codestream, mem_file);
-
     decode_(codestream, frameInfo_, 0);
   }
 
+  /// <summary>
+  /// Decodes the encoded HTJ2K bitstream to the requested decomposition level.
+  /// The caller must have copied the HTJ2K encoded bitstream into the encoded 
+  /// buffer before calling this method, see getEncodedBuffer() and
+  ///  getEncodedBytes() above.
+  /// </summary>
   void decodeSubResolution(size_t decompositionLevel) {
     ojph::codestream codestream;
     ojph::mem_infile mem_file;
     mem_file.open(encoded_.data(), encoded_.size());
     readHeader_(codestream, mem_file);
-
     decode_(codestream, frameInfo_, decompositionLevel);
   }
 
@@ -164,36 +169,42 @@ class HTJ2KDecoder {
   Point getImageOffset() const {
     return imageOffset_;
   }
+
   /// <summary>
   /// returns the tile size
   /// </summary>
   Size getTileSize() const {
     return tileSize_;
   }
+  
   /// <summary>
   /// returns the tile offset
   /// </summary>
   Point getTileOffset() const {
     return tileOffset_;
   }
+
   /// <summary>
   /// returns the block dimensions
   /// </summary>
   Size getBlockDimensions() const {
     return blockDimensions_;
   }
+
   /// <summary>
   /// returns the precinct for the specified resolution decomposition level
   /// </summary>
   Size getPrecinct(size_t level) const {
     return precincts_[level];
   }
+  
   /// <summary>
   /// returns the number of layers 
   /// </summary>
   int32_t getNumLayers() const {
     return numLayers_;
   }
+
   /// <summary>
   /// returns whether or not a color transform is used 
   /// </summary>
@@ -242,9 +253,10 @@ class HTJ2KDecoder {
 
     void decode_(ojph::codestream& codestream, const FrameInfo& frameInfo, size_t decompositionLevel) {
       
+      // calculate the resolution at the requested decomposition level and
+      // allocate destination buffer
       Size sizeAtDecompositionLevel = calculateSizeAtDecompositionLevel(decompositionLevel);
       int resolutionLevel = numDecompositions_ - decompositionLevel;
-      // allocate destination buffer
       const size_t bytesPerPixel = frameInfo.bitsPerSample / 8;
       const size_t destinationSize = sizeAtDecompositionLevel.width * sizeAtDecompositionLevel.height * frameInfo.componentCount * bytesPerPixel;
       decoded_.resize(destinationSize);
@@ -276,20 +288,20 @@ class HTJ2KDecoder {
             unsigned char* pOut = (unsigned char*)&decoded_[lineStart];
             for (size_t x = 0; x < sizeAtDecompositionLevel.width; x++) {
               int val = line->i32[x];
-              pOut[x * frameInfo.componentCount] = std::max(0, std::min(val, UCHAR_MAX));
+              pOut[x] = std::max(0, std::min(val, UCHAR_MAX));
             }
           } else {
             if(frameInfo.isSigned) {
               short* pOut = (short*)&decoded_[lineStart];
               for (size_t x = 0; x < sizeAtDecompositionLevel.width; x++) {
                 int val = line->i32[x];
-                pOut[x * frameInfo.componentCount] = std::max(SHRT_MIN, std::min(val, SHRT_MAX));
+                pOut[x] = std::max(SHRT_MIN, std::min(val, SHRT_MAX));
               }
             } else {
               unsigned short* pOut = (unsigned short*)&decoded_[lineStart] ;
               for (size_t x = 0; x < sizeAtDecompositionLevel.width; x++) {
                   int val = line->i32[x];
-                  pOut[x * frameInfo.componentCount] = std::max(0, std::min(val, USHRT_MAX));
+                  pOut[x] = std::max(0, std::min(val, USHRT_MAX));
               }
             }
           }
