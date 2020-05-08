@@ -58,6 +58,11 @@ SPDX-License-Identifier: MIT
       <div class="col-md-4">Component Count: <span id="componentCount"></span></div>
     </div>
     <div class="row">
+      <div class="col-md-4">Min Pixel: <span id="minPixel"></span></div>
+      <div class="col-md-4">Max Pixel: <span id="maxPixel"></span></div>
+      <div class="col-md-4">Dynamic Range: <span id="dynamicRange"></span></div>
+    </div>
+    <div class="row">
       <div class="col-md-4">Image Offset: <span id="imageOffset"></span></div>
       <div class="col-md-4">Tile Size: <span id="tileSize"></span></div>
       <div class="col-md-4">Tile Offset: <span id="tileOffset"></span></div>
@@ -205,10 +210,13 @@ SPDX-License-Identifier: MIT
    
     if(!minMax) {
       minMax = getMinMax(frameInfo, pixelData);
+      $('#minPixel').text('' + minMax.min);
+      $('#maxPixel').text('' + minMax.max);
     }
 
     //console.log(minMax);
     let dynamicRange = minMax.max - minMax.min;
+    $('#dynamicRange').text('' + dynamicRange);
     //console.log('dynamicRange=', dynamicRange);
     let bitsOfData = 1;
     while(dynamicRange > 1) {

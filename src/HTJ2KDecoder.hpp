@@ -257,7 +257,7 @@ class HTJ2KDecoder {
       // allocate destination buffer
       Size sizeAtDecompositionLevel = calculateSizeAtDecompositionLevel(decompositionLevel);
       int resolutionLevel = numDecompositions_ - decompositionLevel;
-      const size_t bytesPerPixel = frameInfo.bitsPerSample / 8;
+      const size_t bytesPerPixel = (frameInfo_.bitsPerSample + 8 - 1) / 8;
       const size_t destinationSize = sizeAtDecompositionLevel.width * sizeAtDecompositionLevel.height * frameInfo.componentCount * bytesPerPixel;
       decoded_.resize(destinationSize);
       
