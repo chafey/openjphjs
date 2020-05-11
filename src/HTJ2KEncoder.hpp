@@ -53,7 +53,7 @@ class HTJ2KEncoder {
   /// </returns>
   emscripten::val getDecodedBuffer(const FrameInfo& frameInfo) {
     frameInfo_ = frameInfo;
-    const size_t bytesPerPixel = frameInfo_.bitsPerSample / 8;
+    const size_t bytesPerPixel = (frameInfo_.bitsPerSample + 8 - 1) / 8;
     const size_t decodedSize = frameInfo_.width * frameInfo_.height * frameInfo_.componentCount * bytesPerPixel;
     for (int c = 0; c < frameInfo_.componentCount; ++c) {
         downSamples_[c].x = 1;
