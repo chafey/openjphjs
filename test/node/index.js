@@ -50,7 +50,7 @@ function encode(pathToUncompressedImageFrame, imageFrame, pathToJ2CFile, iterati
     console.log('  encoded length=', encodedBytes.length)
   
     if(pathToJ2CFile) {
-        fs.writeFileSync(pathToJ2CFile, encodedBytes);
+        //fs.writeFileSync(pathToJ2CFile, encodedBytes);
     }
     // cleanup allocated memory
     encoder.delete();

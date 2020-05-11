@@ -89,11 +89,13 @@ class HTJ2KDecoder {
   /// decode()).  level = 0 = full res, level = _numDecompositions = lowest resolution
   /// </summary>
   Size calculateSizeAtDecompositionLevel(int decompositionLevel) {
-    ojph::size extent;
-    extent.w = frameInfo_.width;
-    extent.h = frameInfo_.height;
-    ojph::size resolution = ojph::calculate_decomposition_resolution(extent, decompositionLevel);
-    return Size(resolution.w, resolution.h);
+    Size result(frameInfo_.width, frameInfo_.height);
+    while(decompositionLevel > 0) {
+      result.width = ojph_div_ceil(result.width, 2);
+      result.height = ojph_div_ceil(result.height, 2);
+      decompositionLevel--;
+    }
+    return result;
   }
 
   /// <summary>
@@ -261,6 +263,12 @@ class HTJ2KDecoder {
       const size_t destinationSize = sizeAtDecompositionLevel.width * sizeAtDecompositionLevel.height * frameInfo.componentCount * bytesPerPixel;
       decoded_.resize(destinationSize);
       
+      // NOTE - enabling resilience does not seem to have any effect at this point...
+      //codestream.enable_resilience();
+
+      // set the level to read to and reconstruction level to the specified decompositionLevel
+      codestream.restrict_input_resolution(decompositionLevel, decompositionLevel);
+
       // parse it
       if(frameInfo.componentCount == 1) {
         codestream.set_planar(true);
@@ -283,7 +291,7 @@ class HTJ2KDecoder {
       {
         size_t lineStart = y * sizeAtDecompositionLevel.width * frameInfo.componentCount * bytesPerPixel;
         if(frameInfo.componentCount == 1) {
-          ojph::line_buf *line = codestream.pull(comp_num, resolutionLevel);
+          ojph::line_buf *line = codestream.pull(comp_num);
           if(frameInfo.bitsPerSample <= 8) {
             unsigned char* pOut = (unsigned char*)&decoded_[lineStart];
             for (size_t x = 0; x < sizeAtDecompositionLevel.width; x++) {
@@ -308,7 +316,7 @@ class HTJ2KDecoder {
         } else {
           for (int c = 0; c < frameInfo.componentCount; c++)
           {
-            ojph::line_buf *line = codestream.pull(comp_num, resolutionLevel);
+            ojph::line_buf *line = codestream.pull(comp_num);
             if(frameInfo.bitsPerSample <= 8) {
               uint8_t* pOut = &decoded_[lineStart] + c;
               for (size_t x = 0; x < sizeAtDecompositionLevel.width; x++) {

@@ -65,7 +65,7 @@ class EncodedBuffer : public ojph::outfile_base
      *  @return the file size.
      */
     OJPH_EXPORT
-    virtual long tell() { return buffer_.size(); }
+    virtual ojph::si64 tell() { return buffer_.size(); }
 
     /** Call this function to close the file and deallocate memory
 	 *
