@@ -94,6 +94,12 @@ SPDX-License-Identifier: MIT
     </div>
     <div class="row">
       <div class="col-md-12">
+        <span>Encoded Bytes Read: </span><span id="encodedBytesRead">0</span>
+        <input type="range" class="custom-range" id="encodedBytesReadRange" min="0" max="5" value="0">
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-md-12">
         <span>Level: </span><span id="decodeLevel">0</span>
         <input type="range" class="custom-range" id="decodeLevelRange" min="0" max="5" value="0">
       </div>
@@ -257,14 +263,13 @@ SPDX-License-Identifier: MIT
   }
 
   function display(frameInfo, decodedBuffer, interleaveMode) {
-
     const pixelData = getPixelData(frameInfo, decodedBuffer);
 
     const begin = performance.now(); // performance.now() returns value in milliseconds
     
     var c = document.getElementById("myCanvas");
     var ctx = c.getContext("2d");
-
+    
     c.width = frameInfo.width;
     c.height = frameInfo.height;
     var myImageData = ctx.createImageData(frameInfo.width, frameInfo.height);
@@ -289,23 +294,12 @@ SPDX-License-Identifier: MIT
     encodedBuffer.set(encodedBitStream);
     let end = performance.now();
 
-    /*
-    // zero out bytes for testing resiliency
-    const numberOfBytesForDecodeLevel = encodedBitStream.length / (decodeLevel + 1);
-    console.log('numberOfBytesForDecodeLevel:', numberOfBytesForDecodeLevel);
-    for(let i=numberOfBytesForDecodeLevel; i < encodedBitStream.length; i++) {
-      encodedBuffer[i] = 0;
-    }
-    decodeLevel = 0;
-    */
-   
     // warmup decode
     decoder.readHeader();
     const resolutionAtLevel = decoder.calculateSizeAtDecompositionLevel(decodeLevel);
 
     $('#decodeLevel').text('' + decodeLevel + ' (' + resolutionAtLevel.width + 'x' + resolutionAtLevel.height + ')');
     $('#decodeLevelRange').attr('max', decoder.getNumDecompositions());
-    
 
     // Decode
     begin = performance.now(); // performance.now() returns value in milliseconds
@@ -394,6 +388,8 @@ SPDX-License-Identifier: MIT
     .then((arrayBuffer) => {
       try {
         encodedBitStream = new Uint8Array(arrayBuffer);
+        $('#encodedBytesRead').text('' + encodedBitStream.length.toLocaleString() + ' bytes');
+        $('#encodedBytesReadRange').attr('max', encodedBitStream.length-1);
         decode();
         uncompressedImageFrame = new Uint8Array(decoder.getDecodedBuffer().length);
         uncompressedImageFrame.set(decoder.getDecodedBuffer());
@@ -485,18 +481,22 @@ SPDX-License-Identifier: MIT
       }, 1);
     });
 
-    $('#bytesDecodedRange').on('input', function(e) {
-      bytePercent = parseFloat($(this).val());
-      console.log('bytePercent =', bytePercent);
-      const numBytes = Math.floor(encodedBitStream.length * bytePercent / 100);
-      console.log('numBytes=', numBytes);
-      const fullEncodedBitStream = encodedBitStream.slice(0, numBytes);
-      //encodedBitStream = new Uint8Array(numBytes);
-      //encodedBitStream.set(fullEncodedBitStream);
-      console.log(encodedBitStream.length);
-      $('#bytesDecoded').text('' + bytePercent + "% (" + numBytes + " bytes)");
-      decode();
-      encodedBitStream = fullEncodedBitStream;
+    $('#encodedBytesReadRange').on('input', function(e) {
+      numBytes = parseInt($(this).val());
+      let length = encodedBitStream.length - numBytes;
+      const fullEncodedBitStream = encodedBitStream;
+      encodedBitStream = new Uint8Array(length);
+      for(let i=0; i < length; i++) {
+        encodedBitStream[i] = fullEncodedBitStream[i];
+      }
+      $('#encodedBytesRead').text('' + encodedBitStream.length.toLocaleString() + ' bytes');
+      try {
+        decode();
+      } catch(ex) {
+        console.log(ex);
+      } finally {
+        encodedBitStream = fullEncodedBitStream;
+      }
     });
 
     $('#quantizationRange').on('input', function(e) {

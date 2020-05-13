@@ -217,6 +217,8 @@ class HTJ2KDecoder {
   private:
 
     void readHeader_(ojph::codestream& codestream, ojph::mem_infile& mem_file) {
+       // NOTE - enabling resilience does not seem to have any effect at this point...
+      codestream.enable_resilience();
       codestream.read_headers(&mem_file);
       ojph::param_siz siz = codestream.access_siz();
       frameInfo_.width = siz.get_image_extent().x - siz.get_image_offset().x;
@@ -263,8 +265,7 @@ class HTJ2KDecoder {
       const size_t destinationSize = sizeAtDecompositionLevel.width * sizeAtDecompositionLevel.height * frameInfo.componentCount * bytesPerPixel;
       decoded_.resize(destinationSize);
       
-      // NOTE - enabling resilience does not seem to have any effect at this point...
-      //codestream.enable_resilience();
+     
 
       // set the level to read to and reconstruction level to the specified decompositionLevel
       codestream.restrict_input_resolution(decompositionLevel, decompositionLevel);
