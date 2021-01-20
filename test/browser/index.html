@@ -144,6 +144,14 @@ SPDX-License-Identifier: MIT
           <option value="7">7</option>
           <option value="8">8</option>
         </select>        
+        Block Dimensions:
+        <select id="blockDimensionsSelector">
+          <option value="4x4">4</option>
+          <option value="8x8">8</option>
+          <option value="16x16">16</option>
+          <option value="32x32">32</option>
+          <option value="64x64" selected>64</option>
+        </select>        
       </div>
     </div>
     <div class="row">
@@ -169,6 +177,7 @@ SPDX-License-Identifier: MIT
   let progressionOrder = undefined;
   let decodeLevel = 0;
   let numDecompositionsToEncode = 5;
+  let blockDimensions = 64;
 
   function getMinMax(frameInfo, pixelData) {
     const numPixels = frameInfo.width * frameInfo.height * frameInfo.componentCount;
@@ -417,6 +426,7 @@ SPDX-License-Identifier: MIT
       encoder.setQuality(false, quantization);
     }
     encoder.setDecompositions(numDecompositionsToEncode);
+    encoder.setBlockDimensions({width: blockDimensions, height:blockDimensions});
     encoder.setIsUsingColorTransform(decoder.getFrameInfo().componentCount === 3);
     encoder.setProgressionOrder(progressionOrder);
     
@@ -530,6 +540,16 @@ SPDX-License-Identifier: MIT
       encodedBitStream = encodedBytes;
       decode();
     });
+
+    $('#blockDimensionsSelector').change(function(e) {
+      blockDimensions = parseInt(e.target.options[e.target.selectedIndex].value);
+      encode(quantization);
+       // Get the encoded bytes and display them
+      const encodedBytes = encoder.getEncodedBuffer();
+      encodedBitStream = encodedBytes;
+      decode();
+    });
+
 
     $('#benchmark').click(function(e) {
       $('#status').text('Please wait while benchmark runs....');
