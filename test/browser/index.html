@@ -572,7 +572,7 @@ SPDX-License-Identifier: MIT
       try {
         decode();
       } catch(ex) {
-        console.log(ex);
+        $('#status').text('Exception thrown while parsing ' + ex);
       } finally {
       }
     });

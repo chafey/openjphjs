@@ -5,14 +5,13 @@ target_link_libraries(openjphjs PRIVATE openjph)
 
 target_compile_features(openjphjs PUBLIC cxx_std_11)
 
-
 if (CMAKE_BUILD_TYPE STREQUAL Debug)
 	SET(linkFlags "-g4")
 else() # Either MinSizeRel, RelWithDebInfo or Release, all which run with optimizations enabled.
 	SET(linkFlags "-O3")
 endif()
 
-set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -fexceptions")
 
 set_target_properties(
     openjphjs 
