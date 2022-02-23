@@ -4,17 +4,21 @@ SPDX-License-Identifier: MIT
 -->
 <!DOCTYPE HTML>
 <html>
+
 <head>
-    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">   
-    <script src="https://code.jquery.com/jquery-2.2.4.min.js"></script>
-    <script type="text/javascript" src="../../dist/openjphjs.js"></script>
+  <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+  <script src="https://code.jquery.com/jquery-2.2.4.min.js"></script>
+  <script type="text/javascript" src="../../dist/openjphjs.js"></script>
 </head>
+
 <body>
-<div class="container">
+  <div class="container">
     <div class="page-header">
-        <h1>HTJ2K/JPH Decoding with WebAssembly</h1>
-        <p class="lead">
-          Select an image or drag and drop a HTJ2K/JPH file.  Files dropped here remain local in your browser, they are not uploaded anywhere.
+      <h1>HTJ2K/JPH Decoding with WebAssembly</h1>
+      <p class="lead">
+        Select an image or drag and drop a HTJ2K/JPH file. Files dropped here remain local in your browser, they are not
+        uploaded anywhere.
       </p>
       <div class="row">
         <select id="imageSelector">
@@ -37,15 +41,15 @@ SPDX-License-Identifier: MIT
         <span>Status:</span><span id="status"></span>
       </div>
       <div class="row">
-        <label><input id="visualizeDeltas" type="checkbox" value="">Visualize Deltas</label>   
+        <label><input id="visualizeDeltas" type="checkbox" value="">Visualize Deltas</label>
       </div>
     </div>
-  <div class="row">
+    <div class="row">
       <div class="col-md-12">
-      <b>Image Properties</b>  
+        <b>Image Properties</b>
+      </div>
     </div>
-  </div>
-  <div class="row">
+    <div class="row">
       <div class="col-md-4">Encode Time: <span id="encodeTime"></span></div>
       <div class="col-md-4">Decode Time: <span id="decodeTime"></span></div>
       <div class="col-md-4">Display Time: <span id="displayTime"></span></div>
@@ -54,7 +58,7 @@ SPDX-License-Identifier: MIT
       <div class="col-md-4">Encoded Size: <span id="encodedSize"></span></div>
       <div class="col-md-4">Decoded Size: <span id="decodedSize"></span></div>
       <div class="col-md-4">Compression Ratio: <span id="compressionRatio"></span></div>
-     </div>
+    </div>
     <div class="row">
       <div class="col-md-4">Resolution: <span id="resolution"></span></div>
       <div class="col-md-4">Pixel Format: <span id="pixelFormat"></span></div>
@@ -92,7 +96,7 @@ SPDX-License-Identifier: MIT
     <hr>
     <div class="row">
       <div class="col-md-12">
-        <b>Decoding Parameters</b>  
+        <b>Decoding Parameters</b>
       </div>
     </div>
     <div class="row">
@@ -111,17 +115,17 @@ SPDX-License-Identifier: MIT
     <hr>
     <div class="row">
       <div class="col-md-12">
-        <b>Encoding Parameters</b>  
+        <b>Encoding Parameters</b>
       </div>
-      </div>
-        <div class="row">
+    </div>
+    <div class="row">
       <div class="col-md-12">
         <span>Lossy Quantization Factor: </span><span id="quantization">0.0000</span>
         <input type="range" class="custom-range" id="quantizationRange" min="0" max="1000" value="0">
       </div>
     </div>
     <div class="row">
-      
+
       <div class="col-md-12">
         <button id="download">Download</button>
         Progression Order:
@@ -143,7 +147,7 @@ SPDX-License-Identifier: MIT
           <option value="6">6</option>
           <option value="7">7</option>
           <option value="8">8</option>
-        </select>        
+        </select>
         Block Dimensions:
         <select id="blockDimensionsSelector">
           <option value="4x4">4</option>
@@ -151,14 +155,14 @@ SPDX-License-Identifier: MIT
           <option value="16x16">16</option>
           <option value="32x32">32</option>
           <option value="64x64" selected>64</option>
-        </select>        
+        </select>
       </div>
     </div>
     <div class="row">
       <div class="col-md-6">
-        <canvas id='myCanvas' width="512" height="512"/>
+        <canvas id='myCanvas' width="512" height="512" />
+      </div>
     </div>
-  </div>
 </body>
 
 <script>
@@ -168,9 +172,9 @@ SPDX-License-Identifier: MIT
 
   // upon loading a decoded bitstream, set to the decoded data so it can be reencoded
   // as part of the lossy encoding functionality.  NOTE - is not changed after load  
-  let uncompressedImageFrame = undefined; 
-  let fullEncodedBitStream = undefined; 
-  
+  let uncompressedImageFrame = undefined;
+  let fullEncodedBitStream = undefined;
+
   let frameInfo = undefined;
   let quantization = 0;
   let minMax = undefined;
@@ -183,20 +187,20 @@ SPDX-License-Identifier: MIT
     const numPixels = frameInfo.width * frameInfo.height * frameInfo.componentCount;
     let min = pixelData[0];
     let max = pixelData[0];
-    for(let i=0; i < numPixels; i++) {
-      if(pixelData[i] < min) {
+    for (let i = 0; i < numPixels; i++) {
+      if (pixelData[i] < min) {
         min = pixelData[i];
       }
-      if(pixelData[i] > max) {
+      if (pixelData[i] > max) {
         max = pixelData[i];
       }
     }
-    return {min, max};
+    return { min, max };
   }
 
   function getPixelData(frameInfo, decodedBuffer) {
-    if(frameInfo.bitsPerSample > 8) {
-      if(frameInfo.isSigned) {
+    if (frameInfo.bitsPerSample > 8) {
+      if (frameInfo.isSigned) {
         return new Int16Array(decodedBuffer.buffer, decodedBuffer.byteOffset, decodedBuffer.byteLength / 2);
       } else {
         return new Uint16Array(decodedBuffer.buffer, decodedBuffer.byteOffset, decodedBuffer.byteLength / 2);
@@ -211,12 +215,12 @@ SPDX-License-Identifier: MIT
     const bytesPerSample = (frameInfo.bitsPerSample <= 8) ? 1 : 2;
     let planeSize = frameInfo.width * frameInfo.height * bytesPerSample;
     let shift = 0;
-    if(frameInfo.bitsPerSample > 8) {
+    if (frameInfo.bitsPerSample > 8) {
       shift = 8;
     }
     let inOffset = 0;
-   
-    for(var y=0; y < frameInfo.height; y++) {
+
+    for (var y = 0; y < frameInfo.height; y++) {
       for (var x = 0; x < frameInfo.width; x++) {
         imageData.data[outOffset++] = pixelData[inOffset++] >> shift;
         imageData.data[outOffset++] = pixelData[inOffset++] >> shift;
@@ -230,8 +234,8 @@ SPDX-License-Identifier: MIT
     var outOffset = 0;
     var planeSize = frameInfo.width * frameInfo.height;
     var inOffset = 0;
-   
-    if(!minMax) {
+
+    if (!minMax) {
       minMax = getMinMax(frameInfo, pixelData);
       $('#minPixel').text('' + minMax.min);
       $('#maxPixel').text('' + minMax.max);
@@ -242,7 +246,7 @@ SPDX-License-Identifier: MIT
     $('#dynamicRange').text('' + dynamicRange);
     //console.log('dynamicRange=', dynamicRange);
     let bitsOfData = 1;
-    while(dynamicRange > 1) {
+    while (dynamicRange > 1) {
       dynamicRange = dynamicRange >> 1;
       bitsOfData++;
     }
@@ -251,19 +255,19 @@ SPDX-License-Identifier: MIT
     const offset = -minMax.min;
     //console.log('bitShift=', bitShift);
     //console.log('offset=', offset);
-    
+
     //deltaLUT = [];
 
-    for(var y=0; y < frameInfo.height; y++) {
+    for (var y = 0; y < frameInfo.height; y++) {
       for (var x = 0; x < frameInfo.width; x++) {
-        if(frameInfo.bitsPerSample <= 8) {
+        if (frameInfo.bitsPerSample <= 8) {
           const value = pixelData[inOffset++];
           imageData.data[outOffset] = value;
           imageData.data[outOffset + 1] = value;
           imageData.data[outOffset + 2] = value;
           imageData.data[outOffset + 3] = 255;
           outOffset += 4;
-        } 
+        }
         else // bitsPerSample > 8 
         {
           // Do a simple transformation to display 16 bit data:
@@ -282,27 +286,27 @@ SPDX-License-Identifier: MIT
   }
 
   function deltasToCanvas(frameInfo, pixelData, imageData) {
-    if(!uncompressedImageFrame) {
+    if (!uncompressedImageFrame) {
       return;
     }
     const deltas = new Int32Array(frameInfo.height * frameInfo.width);
     const uif = getPixelData(frameInfo, uncompressedImageFrame);
     let inOffset = 0;
     let outOffset = 0;
-    for(var y=0; y < frameInfo.height; y++) {
+    for (var y = 0; y < frameInfo.height; y++) {
       for (var x = 0; x < frameInfo.width; x++) {
-          const unc = uif[inOffset];
-          const comp = pixelData[inOffset];
-          deltas[inOffset++] = Math.abs(comp - unc);
+        const unc = uif[inOffset];
+        const comp = pixelData[inOffset];
+        deltas[inOffset++] = Math.abs(comp - unc);
       }
     }
     const deltaMinMax = getMinMax(frameInfo, deltas);
     console.log('deltas min/max', deltaMinMax);
     inOffset = 0;
 
-    for(var y=0; y < frameInfo.height; y++) {
+    for (var y = 0; y < frameInfo.height; y++) {
       for (var x = 0; x < frameInfo.width; x++) {
-        if(uncompressedImageFrame) {
+        if (uncompressedImageFrame) {
           const delta = deltas[inOffset];
           inOffset++;
           imageData.data[outOffset] = delta;
@@ -311,7 +315,7 @@ SPDX-License-Identifier: MIT
           imageData.data[outOffset + 3] = 255;
           outOffset += 4;
         }
-      } 
+      }
     }
   }
 
@@ -319,28 +323,28 @@ SPDX-License-Identifier: MIT
     const pixelData = getPixelData(frameInfo, decodedBuffer);
 
     const begin = performance.now(); // performance.now() returns value in milliseconds
-    
+
     var c = document.getElementById("myCanvas");
     var ctx = c.getContext("2d");
-    
+
     c.width = frameInfo.width;
     c.height = frameInfo.height;
     var myImageData = ctx.createImageData(frameInfo.width, frameInfo.height);
 
-    const visualizeDeltas = $('#visualizeDeltas').is(":checked"); 
-    if(frameInfo.componentCount > 1) {
+    const visualizeDeltas = $('#visualizeDeltas').is(":checked");
+    if (frameInfo.componentCount > 1) {
       colorToCanvas(frameInfo, pixelData, myImageData, 2);
     } else {
-      if(visualizeDeltas) {
+      if (visualizeDeltas) {
         deltasToCanvas(frameInfo, pixelData, myImageData);
       } else {
         grayToCanvas(frameInfo, pixelData, myImageData);
       }
     }
-    
+
     ctx.putImageData(myImageData, 0, 0);
     const end = performance.now();
-    $('#displayTime').text((end-begin).toFixed(2) + ' ms');
+    $('#displayTime').text((end - begin).toFixed(2) + ' ms');
   }
 
   function decode(iterations = 1) {
@@ -361,25 +365,25 @@ SPDX-License-Identifier: MIT
 
     // Decode
     begin = performance.now(); // performance.now() returns value in milliseconds
-    for(let i=0; i < iterations; i++) {
+    for (let i = 0; i < iterations; i++) {
       decoder.decodeSubResolution(decodeLevel);
     }
     end = performance.now();
-    $('#decodeTime').text(((end-begin) / iterations).toFixed(2) + ' ms');
+    $('#decodeTime').text(((end - begin) / iterations).toFixed(2) + ' ms');
 
     frameInfo = decoder.getFrameInfo();
 
     // Display image properties
     $('#status').text('OK');
-    $('#resolution').text(''+frameInfo.width + 'x' + frameInfo.height);
-    $('#pixelFormat').text(''+frameInfo.bitsPerSample +' bpp ' + (frameInfo.isSigned ? 'signed' : 'unsigned'));
-    $('#componentCount').text(''+frameInfo.componentCount);
+    $('#resolution').text('' + frameInfo.width + 'x' + frameInfo.height);
+    $('#pixelFormat').text('' + frameInfo.bitsPerSample + ' bpp ' + (frameInfo.isSigned ? 'signed' : 'unsigned'));
+    $('#componentCount').text('' + frameInfo.componentCount);
 
     $('#imageOffset').text('' + decoder.getImageOffset().x + ',' + decoder.getImageOffset().y);
     $('#tileSize').text('' + decoder.getTileSize().width + 'x' + decoder.getTileSize().height);
     $('#tileOffset').text('' + decoder.getTileOffset().x + ',' + decoder.getTileOffset().y);
     let downSamplings = '';
-    for(let i=0; i < frameInfo.componentCount; i++) {
+    for (let i = 0; i < frameInfo.componentCount; i++) {
       downSamplings += decoder.getDownSample(i).x + ',' + decoder.getDownSample(i).y + ' ';
     }
     $('#downSampling').text('' + downSamplings);
@@ -388,7 +392,7 @@ SPDX-License-Identifier: MIT
     $('#blockDimensions').text('' + decoder.getBlockDimensions().width + 'x' + decoder.getBlockDimensions().height);
     $('#reversible').text('' + decoder.getIsReversible());
     let precints = '';
-    for(let i=0; i < decoder.getNumDecompositions(); i++) {
+    for (let i = 0; i < decoder.getNumDecompositions(); i++) {
       precints += decoder.getPrecinct(i).width + 'x' + decoder.getPrecinct(i).height + ' ';
     }
     $('#precincts').text('' + precints);
@@ -400,16 +404,16 @@ SPDX-License-Identifier: MIT
 
     // Display Image
     var decodedBuffer = decoder.getDecodedBuffer();
-    $('#decodedSize').text(''+decodedBuffer.length.toLocaleString() + " bytes");
-    $('#compressionRatio').text('' + (decodedBuffer.length /encodedBitStream.length).toFixed(2) + ":1");
-   
+    $('#decodedSize').text('' + decodedBuffer.length.toLocaleString() + " bytes");
+    $('#compressionRatio').text('' + (decodedBuffer.length / encodedBitStream.length).toFixed(2) + ":1");
+
     let subResolutions = '';
-    for(let i=0; i < decoder.getNumDecompositions(); i++) {
+    for (let i = 0; i < decoder.getNumDecompositions(); i++) {
       const resolution = decoder.calculateSizeAtDecompositionLevel(i);
       subResolutions += resolution.width + 'x' + resolution.height + ' ';
     }
     $('#subResolutions').text('' + subResolutions);
-    
+
     frameInfo.width = resolutionAtLevel.width;
     frameInfo.height = resolutionAtLevel.height;    //console.log(frameInfo);
     display(frameInfo, decodedBuffer, 2);
@@ -420,46 +424,46 @@ SPDX-License-Identifier: MIT
     // Setup buffer
     const decodedBytes = encoder.getDecodedBuffer(frameInfo);
     decodedBytes.set(uncompressedImageFrame);
-    if(quantization < 0.00001) {
+    if (quantization < 0.00001) {
       encoder.setQuality(true, quantization);
     } else {
       encoder.setQuality(false, quantization);
     }
     encoder.setDecompositions(numDecompositionsToEncode);
-    encoder.setBlockDimensions({width: blockDimensions, height:blockDimensions});
+    encoder.setBlockDimensions({ width: blockDimensions, height: blockDimensions });
     encoder.setIsUsingColorTransform(decoder.getFrameInfo().componentCount === 3);
     encoder.setProgressionOrder(progressionOrder);
-    
+
     // Do the encode
     begin = performance.now(); // performance.now() returns value in milliseconds
-    for(let i=0; i < iterations; i++) {
+    for (let i = 0; i < iterations; i++) {
       encoder.encode();
     }
     end = performance.now();
-    $('#encodeTime').text(((end-begin) / iterations).toFixed(2) + ' ms');
+    $('#encodeTime').text(((end - begin) / iterations).toFixed(2) + ' ms');
   }
 
   function load(url) {
     fetch(url)
-    .then((response) => {
-      return response.arrayBuffer();
-    })
-    .then((arrayBuffer) => {
-      try {
-        fullEncodedBitStream = new Uint8Array(arrayBuffer);
-        encodedBitStream = new Uint8Array(arrayBuffer);
-        $('#encodedBytesRead').text('' + encodedBitStream.length.toLocaleString() + ' bytes');
-        $('#encodedBytesReadRange').attr('max', encodedBitStream.length-1);
-        decode();
-        uncompressedImageFrame = new Uint8Array(decoder.getDecodedBuffer().length);
-        uncompressedImageFrame.set(decoder.getDecodedBuffer());
-      }
-      catch(ex) {
-        $('#status').text('Exception thrown while parsing ' + ex);
-      }
-    }).catch(function() {
-      $('#status').text('error loading ' + url);
-    });
+      .then((response) => {
+        return response.arrayBuffer();
+      })
+      .then((arrayBuffer) => {
+        try {
+          fullEncodedBitStream = new Uint8Array(arrayBuffer);
+          encodedBitStream = new Uint8Array(arrayBuffer);
+          $('#encodedBytesRead').text('' + encodedBitStream.length.toLocaleString() + ' bytes');
+          $('#encodedBytesReadRange').attr('max', encodedBitStream.length - 1);
+          decode();
+          uncompressedImageFrame = new Uint8Array(decoder.getDecodedBuffer().length);
+          uncompressedImageFrame.set(decoder.getDecodedBuffer());
+        }
+        catch (ex) {
+          $('#status').text('Exception thrown while parsing ' + ex);
+        }
+      }).catch(function () {
+        $('#status').text('error loading ' + url);
+      });
   }
 
   function reset() {
@@ -467,7 +471,7 @@ SPDX-License-Identifier: MIT
     minMax = undefined;
     const c = document.getElementById("myCanvas");
     const ctx = c.getContext("2d");
-    ctx.fillRect(0,0,c.width, c.height);
+    ctx.fillRect(0, 0, c.width, c.height);
     $('#status').text('OK');
 
     $('#encodeTime').text('');
@@ -481,11 +485,11 @@ SPDX-License-Identifier: MIT
     $('#resolution').text('');
     $('#pixelFormat').text('');
     $('#componentCount').text('');
-    
+
     $('#reversible').text('');
     $('#numDecompositions').text('');
     $('#progessionOrder').text('');
-}
+  }
 
   function init(path) {
     $('#imageSelector').val(path);
@@ -495,18 +499,18 @@ SPDX-License-Identifier: MIT
   Module.onRuntimeInitialized = async _ => {
     decoder = new Module.HTJ2KDecoder();
     encoder = new Module.HTJ2KEncoder();
-    
+
     init('../../test/fixtures/j2c/CT1.j2c');
     //init('../../test/fixtures/j2c/MG1.j2c');
     //init('../../test/fixtures/j2c/MR2.j2c');
     //init('../../extern/OpenJPH/subprojects/js/html/test.j2c');
 
-    $('#imageSelector').change(function(e) {
+    $('#imageSelector').change(function (e) {
       reset();
       load(e.target.options[e.target.selectedIndex].value);
     });
 
-    $('#visualizeDeltas').change(function() {
+    $('#visualizeDeltas').change(function () {
       // this will contain a reference to the checkbox   
       if (this.checked) {
         decode();
@@ -516,42 +520,42 @@ SPDX-License-Identifier: MIT
     });
 
 
-    $('#decodeLevelRange').on('input', function(e) {
+    $('#decodeLevelRange').on('input', function (e) {
       decodeLevel = parseInt($(this).val());
       const resolutionAtLevel = decoder.calculateSizeAtDecompositionLevel(decodeLevel);
       $('#decodeLevel').text('' + decodeLevel + ' (' + resolutionAtLevel.width + 'x' + resolutionAtLevel.height + ')');
       decode();
     });
 
-    $('#progressionOrderSelector').change(function(e) {
+    $('#progressionOrderSelector').change(function (e) {
       progressionOrder = parseInt(e.target.options[e.target.selectedIndex].value);
       encode(quantization);
-       // Get the encoded bytes and display them
+      // Get the encoded bytes and display them
       const encodedBytes = encoder.getEncodedBuffer();
       encodedBitStream = encodedBytes;
       decode();
     });
 
-    $('#decompositionsSelector').change(function(e) {
+    $('#decompositionsSelector').change(function (e) {
       numDecompositionsToEncode = parseInt(e.target.options[e.target.selectedIndex].value);
       encode(quantization);
-       // Get the encoded bytes and display them
+      // Get the encoded bytes and display them
       const encodedBytes = encoder.getEncodedBuffer();
       encodedBitStream = encodedBytes;
       decode();
     });
 
-    $('#blockDimensionsSelector').change(function(e) {
+    $('#blockDimensionsSelector').change(function (e) {
       blockDimensions = parseInt(e.target.options[e.target.selectedIndex].value);
       encode(quantization);
-       // Get the encoded bytes and display them
+      // Get the encoded bytes and display them
       const encodedBytes = encoder.getEncodedBuffer();
       encodedBitStream = encodedBytes;
       decode();
     });
 
 
-    $('#benchmark').click(function(e) {
+    $('#benchmark').click(function (e) {
       $('#status').text('Please wait while benchmark runs....');
       setTimeout(() => {
         const iterations = 50;
@@ -561,30 +565,30 @@ SPDX-License-Identifier: MIT
       }, 1);
     });
 
-    $('#encodedBytesReadRange').on('input', function(e) {
+    $('#encodedBytesReadRange').on('input', function (e) {
       numBytes = parseInt($(this).val());
       let length = fullEncodedBitStream.length - numBytes;
       encodedBitStream = new Uint8Array(length);
-      for(let i=0; i < length; i++) {
+      for (let i = 0; i < length; i++) {
         encodedBitStream[i] = fullEncodedBitStream[i];
       }
       $('#encodedBytesRead').text('' + encodedBitStream.length.toLocaleString() + ' bytes');
       try {
         decode();
-      } catch(ex) {
+      } catch (ex) {
         $('#status').text('Exception thrown while parsing ' + ex);
       } finally {
       }
     });
 
-    $('#quantizationRange').on('input', function(e) {
+    $('#quantizationRange').on('input', function (e) {
       quantization = parseFloat($(this).val()) / 10000;
-      if(decoder.getFrameInfo().bitsPerSample > 8) {
+      if (decoder.getFrameInfo().bitsPerSample > 8) {
         quantization /= 10;
       }
       $('#quantization').text('' + quantization.toFixed(5));
       encode(quantization);
-       // Get the encoded bytes and display them
+      // Get the encoded bytes and display them
       const encodedBytes = encoder.getEncodedBuffer();
       encodedBitStream = encodedBytes;
       decode();
@@ -603,23 +607,23 @@ SPDX-License-Identifier: MIT
 
       var fileReader = new FileReader();
       fileReader.onload = function (e) {
-          var fileAsArrayBuffer = e.target.result;
-          encodedBitStream = new Uint8Array(fileAsArrayBuffer);
-          reset();
-          try {
-            decode();
-          }
-          catch(ex) {
-            $('#status').text('Exception thrown while parsing ' + ex);
-          }
-      };
+        reset();
+        var arrayBuffer = e.target.result;
+        fullEncodedBitStream = new Uint8Array(arrayBuffer);
+        encodedBitStream = new Uint8Array(arrayBuffer);
+        $('#encodedBytesRead').text('' + encodedBitStream.length.toLocaleString() + ' bytes');
+        $('#encodedBytesReadRange').attr('max', encodedBitStream.length - 1);
+        decode();
+        uncompressedImageFrame = new Uint8Array(decoder.getDecodedBuffer().length);
+        uncompressedImageFrame.set(decoder.getDecodedBuffer());
+      }
       fileReader.readAsArrayBuffer(file);
     }
 
     function handleDragOver(evt) {
-        evt.stopPropagation();
-        evt.preventDefault();
-        evt.dataTransfer.dropEffect = 'copy'; // Explicitly show this is a copy.
+      evt.stopPropagation();
+      evt.preventDefault();
+      evt.dataTransfer.dropEffect = 'copy'; // Explicitly show this is a copy.
     }
 
     // Setup the dnd listeners.
@@ -628,12 +632,13 @@ SPDX-License-Identifier: MIT
     dropZone.addEventListener('drop', handleFileSelect, false);
   }
 
-  $('#download').click(function() {
+  $('#download').click(function () {
     // download the de-identified DICOM P10 bytestream
-    var blob = new Blob([encodedBitStream], {type: "image/j2c"});
+    var blob = new Blob([encodedBitStream], { type: "image/j2c" });
     var url = window.URL.createObjectURL(blob);
     window.open(url);
     window.URL.revokeObjectURL(url);
   });
 </script>
+
 </html>

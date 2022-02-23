@@ -11,8 +11,6 @@ else() # Either MinSizeRel, RelWithDebInfo or Release, all which run with optimi
 	SET(linkFlags "-O3")
 endif()
 
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -fexceptions")
-
 set_target_properties(
     openjphjs 
     PROPERTIES 
@@ -23,8 +21,8 @@ set_target_properties(
       -s NO_EXIT_RUNTIME=1 \
       -s MALLOC=emmalloc \
       -s ALLOW_MEMORY_GROWTH=1 \
-      -s TOTAL_MEMORY=1073741824 \
+      -s TOTAL_MEMORY=536870912 \
       -s FILESYSTEM=0 \
       -s EXPORTED_FUNCTIONS=[] \
-      -s EXTRA_EXPORTED_RUNTIME_METHODS=[ccall] \
+      -s EXPORTED_RUNTIME_METHODS=[ccall] \
    ")

@@ -26,3 +26,8 @@ To build native C/C++ version:
 ```
 > ./build-native.sh
 ```
+
+To update to latest version of OpenJPH
+```
+> git submodule update --remote --merge
+```

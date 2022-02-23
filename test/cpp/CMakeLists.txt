@@ -8,4 +8,3 @@ target_link_libraries(cpptest PRIVATE openjph)
 #C++ 14
 target_compile_features(cpptest PUBLIC cxx_std_14)
 
-set(CMAKE_CXX_FLAGS_RELEASE "-O3")
