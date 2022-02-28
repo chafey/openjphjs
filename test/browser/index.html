@@ -371,8 +371,8 @@ SPDX-License-Identifier: MIT
     end = performance.now();
     const timePerFrame = (end - begin) / iterations
     frameInfo = decoder.getFrameInfo();
-    const mps = frameInfo.width * frameInfo.height / timePerFrame
-    $('#decodeTime').text((timePerFrame).toFixed(2) + ' ms (' + mps.toFixed(0) + " MP/s)");
+    const mps = frameInfo.width * frameInfo.height / timePerFrame / 1024 / 1024 * 1000
+    $('#decodeTime').text((timePerFrame).toFixed(2) + ' ms (' + mps.toFixed(2) + " MP/s)");
 
 
     // Display image properties
@@ -443,7 +443,7 @@ SPDX-License-Identifier: MIT
     }
     end = performance.now();
     const timePerFrame = (end - begin) / iterations
-    const mps = frameInfo.width * frameInfo.height / timePerFrame
+    const mps = frameInfo.width * frameInfo.height / timePerFrame / 1024 / 1024 * 1000
     $('#encodeTime').text((timePerFrame).toFixed(2) + ' ms (' + mps.toFixed(0) + " MP/s)");
   }
 
