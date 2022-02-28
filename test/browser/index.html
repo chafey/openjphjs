@@ -369,9 +369,11 @@ SPDX-License-Identifier: MIT
       decoder.decodeSubResolution(decodeLevel);
     }
     end = performance.now();
-    $('#decodeTime').text(((end - begin) / iterations).toFixed(2) + ' ms');
-
+    const timePerFrame = (end - begin) / iterations
     frameInfo = decoder.getFrameInfo();
+    const mps = frameInfo.width * frameInfo.height / timePerFrame
+    $('#decodeTime').text((timePerFrame).toFixed(2) + ' ms (' + mps.toFixed(0) + " MP/s)");
+
 
     // Display image properties
     $('#status').text('OK');
@@ -440,7 +442,9 @@ SPDX-License-Identifier: MIT
       encoder.encode();
     }
     end = performance.now();
-    $('#encodeTime').text(((end - begin) / iterations).toFixed(2) + ' ms');
+    const timePerFrame = (end - begin) / iterations
+    const mps = frameInfo.width * frameInfo.height / timePerFrame
+    $('#encodeTime').text((timePerFrame).toFixed(2) + ' ms (' + mps.toFixed(0) + " MP/s)");
   }
 
   function load(url) {
