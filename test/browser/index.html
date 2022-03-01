@@ -372,7 +372,8 @@ SPDX-License-Identifier: MIT
     const timePerFrame = (end - begin) / iterations
     frameInfo = decoder.getFrameInfo();
     const mps = frameInfo.width * frameInfo.height / timePerFrame / 1024 / 1024 * 1000
-    $('#decodeTime').text((timePerFrame).toFixed(2) + ' ms (' + mps.toFixed(2) + " MP/s)");
+    const fps = 1000 / timePerFrame
+    $('#decodeTime').text((timePerFrame).toFixed(2) + ' ms (' + mps.toFixed(2) + " MP/s; " + fps.toFixed(0) + " fps)");
 
 
     // Display image properties
@@ -444,7 +445,8 @@ SPDX-License-Identifier: MIT
     end = performance.now();
     const timePerFrame = (end - begin) / iterations
     const mps = frameInfo.width * frameInfo.height / timePerFrame / 1024 / 1024 * 1000
-    $('#encodeTime').text((timePerFrame).toFixed(2) + ' ms (' + mps.toFixed(0) + " MP/s)");
+    const fps = 1000 / timePerFrame
+    $('#encodeTime').text((timePerFrame).toFixed(2) + ' ms (' + mps.toFixed(2) + " MP/s; " + fps.toFixed(0) + " fps)");
   }
 
   function load(url) {
@@ -562,7 +564,7 @@ SPDX-License-Identifier: MIT
     $('#benchmark').click(function (e) {
       $('#status').text('Please wait while benchmark runs....');
       setTimeout(() => {
-        const iterations = 50;
+        const iterations = 10;
         decode(iterations)
         encode(quantization, iterations)
         $('#status').text('OK - ' + iterations + ' iterations encode/decode');
