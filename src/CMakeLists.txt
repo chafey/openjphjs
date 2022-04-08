@@ -1,7 +1,7 @@
 
 add_executable(openjphjs jslib.cpp)
 
-target_link_libraries(openjphjs PRIVATE openjph)
+target_link_libraries(openjphjs PRIVATE openjphsimd)
 
 target_compile_features(openjphjs PUBLIC cxx_std_11)
 

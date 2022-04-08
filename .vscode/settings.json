@@ -77,5 +77,6 @@
         "memory_resource": "cpp",
         "cinttypes": "cpp",
         "__functional_03": "cpp"
-    }
+    },
+    "liveServer.settings.port": 5501
 }
