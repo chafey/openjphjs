@@ -15,7 +15,7 @@ SPDX-License-Identifier: MIT
 <body>
   <div class="container">
     <div class="page-header">
-      <h1>HTJ2K/JPH Decoding with WebAssembly</h1>
+      <h1>HTJ2K/JPH Decoding with WebAssembly (v<span id="version"></span>)</h1>
       <p class="lead">
         Select an image or drag and drop a HTJ2K/JPH file. Files dropped here remain local in your browser, they are not
         uploaded anywhere.
@@ -505,6 +505,9 @@ SPDX-License-Identifier: MIT
   Module.onRuntimeInitialized = async _ => {
     decoder = new Module.HTJ2KDecoder();
     encoder = new Module.HTJ2KEncoder();
+
+    const SIMDLevel = Module.getSIMDLevel();
+    $("#version").text(Module.getVersion() + (SIMDLevel ? " SIMD " + SIMDLevel : ""))
 
     init('../../test/fixtures/j2c/CT1.j2c');
     //init('../../test/fixtures/j2c/MG1.j2c');

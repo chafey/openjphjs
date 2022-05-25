@@ -2,19 +2,14 @@
 add_executable(openjphjs jslib.cpp)
 
 target_link_libraries(openjphjs PRIVATE openjphsimd)
-
+target_compile_options(openjphjs PRIVATE -DOJPH_ENABLE_WASM_SIMD -msimd128)
 target_compile_features(openjphjs PUBLIC cxx_std_11)
-
-if (CMAKE_BUILD_TYPE STREQUAL Debug)
-	SET(linkFlags "-g4")
-else() # Either MinSizeRel, RelWithDebInfo or Release, all which run with optimizations enabled.
-	SET(linkFlags "-O3")
-endif()
-
 set_target_properties(
     openjphjs 
     PROPERTIES 
     LINK_FLAGS "\
+      -O3 \
+      -s WASM=1 \
       --bind \
       -s DISABLE_EXCEPTION_CATCHING=1 \
       -s ASSERTIONS=0 \

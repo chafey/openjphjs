@@ -9,6 +9,32 @@
 
 using namespace emscripten;
 
+char buf[] = ""
+  OJPH_INT_TO_STRING(OPENJPH_VERSION_MAJOR) "."
+  OJPH_INT_TO_STRING(OPENJPH_VERSION_MINOR) "."
+  OJPH_INT_TO_STRING(OPENJPH_VERSION_PATCH);
+
+namespace ojph {
+  bool init_cpu_ext_level(int& level);
+}
+
+static std::string getVersion() {
+  std::string version = buf;
+  return version;
+}
+
+static unsigned int getSIMDLevel() {
+  int level = 0;
+  ojph::init_cpu_ext_level(level);
+  return level;
+}
+
+
+EMSCRIPTEN_BINDINGS(charlsjs) {
+    function("getVersion", &getVersion);
+    function("getSIMDLevel", &getSIMDLevel);
+}
+
 EMSCRIPTEN_BINDINGS(FrameInfo) {
   value_object<FrameInfo>("FrameInfo")
     .field("width", &FrameInfo::width)
