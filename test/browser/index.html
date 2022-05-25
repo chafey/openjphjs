@@ -564,7 +564,10 @@ SPDX-License-Identifier: MIT
     $('#benchmark').click(function (e) {
       $('#status').text('Please wait while benchmark runs....');
       setTimeout(() => {
-        const iterations = 30;
+        const queryString = window.location.search
+        const urlParams = new URLSearchParams(queryString)
+        const iterationsParam = urlParams.get('iterations')
+        const iterations = iterationsParam ? iterationsParam : 10;
         decode(iterations)
         encode(quantization, iterations)
         $('#status').text('OK - ' + iterations + ' iterations encode/decode');
