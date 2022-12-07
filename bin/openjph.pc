@@ -1,9 +1,0 @@
-Name: openjph
-Description: Open source implementation of JPH
-Version: 
-Requires: 
-prefix=/emsdk/upstream/emscripten/cache/sysroot
-includedir=
-libdir=
-Libs: 
-Cflags: 
