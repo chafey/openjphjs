@@ -93,6 +93,10 @@ SPDX-License-Identifier: MIT
     <div class="row">
       <div class="col-md-12">Sub Resolutions: <span id="subResolutions"></span></div>
     </div>
+    <div class="row">
+      <div class="col-md-12">CRC32: <span id="crc32"></span></div>
+    </div>
+
     <hr>
     <div class="row">
       <div class="col-md-12">
@@ -182,6 +186,30 @@ SPDX-License-Identifier: MIT
   let decodeLevel = 0;
   let numDecompositionsToEncode = 5;
   let blockDimensions = 64;
+
+  var makeCRCTable = function(){
+    var c;
+    var crcTable = [];
+    for(var n =0; n < 256; n++){
+        c = n;
+        for(var k =0; k < 8; k++){
+            c = ((c&1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1));
+        }
+        crcTable[n] = c;
+    }
+    return crcTable;
+}
+
+var calccrc32 = function(str) {
+    var crcTable = window.crcTable || (window.crcTable = makeCRCTable());
+    var crc = 0 ^ (-1);
+
+    for (var i = 0; i < str.length; i++ ) {
+        crc = (crc >>> 8) ^ crcTable[(crc ^ str[i]) & 0xFF];
+    }
+
+    return (crc ^ (-1)) >>> 0;
+};
 
   function getMinMax(frameInfo, pixelData) {
     const numPixels = frameInfo.width * frameInfo.height * frameInfo.componentCount;
@@ -416,6 +444,10 @@ SPDX-License-Identifier: MIT
       subResolutions += resolution.width + 'x' + resolution.height + ' ';
     }
     $('#subResolutions').text('' + subResolutions);
+
+    const crc32 = calccrc32(decodedBuffer)
+    $('#crc32').text(crc32);
+
 
     frameInfo.width = resolutionAtLevel.width;
     frameInfo.height = resolutionAtLevel.height;    //console.log(frameInfo);
