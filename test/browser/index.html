@@ -239,6 +239,16 @@ var calccrc32 = function(str) {
   }
 
   function colorToCanvas(frameInfo, pixelData, imageData) {
+    if (!minMax) {
+      minMax = getMinMax(frameInfo, pixelData);
+      $('#minPixel').text('' + minMax.min);
+      $('#maxPixel').text('' + minMax.max);
+    }
+
+    //console.log(minMax);
+    let dynamicRange = minMax.max - minMax.min;
+    $('#dynamicRange').text('' + dynamicRange);
+    
     let outOffset = 0;
     const bytesPerSample = (frameInfo.bitsPerSample <= 8) ? 1 : 2;
     let planeSize = frameInfo.width * frameInfo.height * bytesPerSample;
