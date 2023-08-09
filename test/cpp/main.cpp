@@ -127,6 +127,6 @@ int main(int argc, char **argv)
     // decodeFile("test/fixtures/j2c/CT2.j2c");
     // decodeFile("test/fixtures/j2c/MG1.j2c");
 
-    // encodeFile("test/fixtures/raw/CT1.RAW", {.width = 512, .height = 512, .bitsPerSample = 16, .componentCount = 1, .isSigned = true}, "test/fixtures/j2c/CT1.j2c");
+    encodeFile("test/fixtures/raw/CT1.RAW", {.width = 512, .height = 512, .bitsPerSample = 16, .componentCount = 1, .isSigned = true}, "test/fixtures/j2c/CT1.j2c");
     return 0;
 }

@@ -85,6 +85,7 @@ public:
   std::vector<uint8_t> &getDecodedBytes(const FrameInfo &frameInfo)
   {
     frameInfo_ = frameInfo;
+    downSamples_.resize(frameInfo_.componentCount);
     for (int c = 0; c < frameInfo_.componentCount; ++c)
     {
       downSamples_[c].x = 1;
@@ -310,5 +311,5 @@ private:
   Point tileOffset_;
   Size blockDimensions_;
   std::vector<Size> precincts_;
-  bool isUsingColorTransform_;
+  bool isUsingColorTransform_{false};
 };
