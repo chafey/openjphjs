@@ -245,7 +245,7 @@ public:
       codestream.access_qcd().set_irrev_quant(quantizationStep_);
     }
     codestream.set_planar(isUsingColorTransform_ == false);
-    codestream.write_headers(&encoded_);
+    codestream.write_headers(&encoded_, NULL, 0);
 
     // Encode the image
     const size_t bytesPerPixel = frameInfo_.bitsPerSample / 8;
