@@ -29,6 +29,9 @@ public:
   /// Constructor for encoding a HTJ2K image from JavaScript.
   /// </summary>
   HTJ2KEncoder() : decompositions_(5),
+                   request_tlm_marker_(false),
+                   set_tilepart_divisions_at_resolutions_(false),
+                   set_tilepart_divisions_at_components_(false),
                    lossless_(true),
                    quantizationStep_(-1.0),
                    progressionOrder_(2), // RPCL
@@ -202,6 +205,30 @@ public:
   }
 
   /// <summary>
+  /// Sets whether to add TLM at beginning of file
+  /// </summary>
+  void setTLMMarker(bool set_tlm_marker)
+  {
+    request_tlm_marker_ = set_tlm_marker;
+  }
+
+  /// <summary>
+  /// Sets whether to add SOT markers at beginning of resolutions
+  /// </summary>
+  void setTilePartDivisionsAtResolutions(bool set_tilepart_divisions_at_resolutions)
+  {
+    set_tilepart_divisions_at_resolutions_ = set_tilepart_divisions_at_resolutions;
+  }
+
+  /// <summary>
+  /// Sets whether to add SOT markers at beginning of components
+  /// </summary>
+  void setTilePartDivisionsAtComponents(bool set_tilepart_divisions_at_components)
+  {
+    set_tilepart_divisions_at_components_ = set_tilepart_divisions_at_components;
+  }
+
+  /// <summary>
   /// Executes an HTJ2K encode using the data in the source buffer.  The
   /// JavaScript code must copy the source image frame into the source
   /// buffer before calling this method.  See documentation on getSourceBytes()
@@ -244,6 +271,8 @@ public:
     {
       codestream.access_qcd().set_irrev_quant(quantizationStep_);
     }
+    codestream.set_tilepart_divisions(set_tilepart_divisions_at_resolutions_, set_tilepart_divisions_at_components_);
+    codestream.request_tlm_marker(request_tlm_marker_);
     codestream.set_planar(isUsingColorTransform_ == false);
     codestream.write_headers(&encoded_, NULL, 0);
 
@@ -301,6 +330,9 @@ private:
   FrameInfo frameInfo_;
   size_t decompositions_;
   bool lossless_;
+  bool request_tlm_marker_;
+  bool set_tilepart_divisions_at_components_;
+  bool set_tilepart_divisions_at_resolutions_;
   float quantizationStep_;
   size_t progressionOrder_;
 
