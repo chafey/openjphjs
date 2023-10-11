@@ -313,18 +313,18 @@ private:
   std::vector<uint8_t> decoded_;
   EncodedBuffer encoded_;
   FrameInfo frameInfo_;
-  size_t decompositions_ {5};
-  bool lossless_{true};
-  bool request_tlm_marker_ {false};
-  bool set_tilepart_divisions_at_components_ {false};
-  bool set_tilepart_divisions_at_resolutions_ {false};
-  float quantizationStep_ {-1.0f};
-  size_t progressionOrder_ {2}; // RPCL
+  size_t decompositions_ = 5;
+  bool lossless_ = true;
+  bool request_tlm_marker_ = false;
+  bool set_tilepart_divisions_at_components_ = false;
+  bool set_tilepart_divisions_at_resolutions_ = false;
+  float quantizationStep_ = -1.0f;
+  size_t progressionOrder_ = 2; // RPCL
 
   std::vector<Point> downSamples_;
   Point imageOffset_;
   Size tileSize_;
   Point tileOffset_;
-  Size blockDimensions_{Size(64,64)};
+  Size blockDimensions_ = Size(64,64);
   std::vector<Size> precincts_;
 };
