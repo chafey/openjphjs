@@ -449,7 +449,8 @@ var calccrc32 = function(str) {
     $('#compressionRatio').text('' + (decodedBuffer.length / encodedBitStream.length).toFixed(2) + ":1");
 
     let subResolutions = '';
-    for (let i = 0; i <= decoder.getNumDecompositions(); i++) {
+    // Skip level 0 (full resolution)
+    for (let i = 1; i <= decoder.getNumDecompositions(); i++) {
       const resolution = decoder.calculateSizeAtDecompositionLevel(i);
       subResolutions += resolution.width + 'x' + resolution.height + ' ';
     }
