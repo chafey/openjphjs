@@ -160,6 +160,12 @@ SPDX-License-Identifier: MIT
           <option value="32x32">32</option>
           <option value="64x64" selected>64</option>
         </select>
+        Set TLM Marker:
+        <input type="checkbox" id="setTLMMarkerSelector">
+        Set tile part divisions at resolutions:
+        <input type="checkbox" id="setTilePartDivisionsAtResolutionsSelector">
+        Set tile part divisions at components:
+        <input type="checkbox" id="setTilePartDivisionsAtComponentsSelector">
       </div>
     </div>
     <div class="row">
@@ -185,6 +191,9 @@ SPDX-License-Identifier: MIT
   let progressionOrder = undefined;
   let decodeLevel = 0;
   let numDecompositionsToEncode = 5;
+  let setTLMMarker = false;
+  let setTilePartDivisionsAtComponents = false;
+  let setTilePartDivisionsAtResolutions = false;
   let blockDimensions = 64;
 
   var makeCRCTable = function(){
@@ -438,7 +447,7 @@ var calccrc32 = function(str) {
     }
     $('#precincts').text('' + precints);
     $('#numLayers').text('' + decoder.getNumLayers());
-    $('#colorTransform').text('' + decoder.getIsUsingColorTransform());
+    $('#colorTransform').text('' + frameInfo.isUsingColorTransform);
 
     $('#progessionOrder').text(['LRCP', 'RLCP', 'RPCL', 'PCRL', 'CPRL'][decoder.getProgressionOrder()]);
     progressionOrder = decoder.getProgressionOrder();
@@ -475,8 +484,11 @@ var calccrc32 = function(str) {
       encoder.setQuality(false, quantization);
     }
     encoder.setDecompositions(numDecompositionsToEncode);
+    encoder.setTilePartDivisionsAtResolutions(setTilePartDivisionsAtResolutions);
+    encoder.setTilePartDivisionsAtComponents(setTilePartDivisionsAtComponents)
+    encoder.setTLMMarker(setTLMMarker);
     encoder.setBlockDimensions({ width: blockDimensions, height: blockDimensions });
-    encoder.setIsUsingColorTransform(decoder.getFrameInfo().componentCount === 3);
+    frameInfo.isUsingColorTransform = decoder.getFrameInfo().componentCount === 3;
     encoder.setProgressionOrder(progressionOrder);
 
     // Do the encode
@@ -589,6 +601,31 @@ var calccrc32 = function(str) {
 
     $('#decompositionsSelector').change(function (e) {
       numDecompositionsToEncode = parseInt(e.target.options[e.target.selectedIndex].value);
+      encode(quantization);
+      // Get the encoded bytes and display them
+      const encodedBytes = encoder.getEncodedBuffer();
+      encodedBitStream = encodedBytes;
+      decode();
+    });
+
+    $('#setTLMMarkerSelector').change(function (e) {
+      setTLMMarker = e.target.checked;
+      encode(quantization);
+      // Get the encoded bytes and display them
+      const encodedBytes = encoder.getEncodedBuffer();
+      encodedBitStream = encodedBytes;
+      decode();
+    });
+    $('#setTilePartDivisionsAtResolutionsSelector').change(function (e) {
+      setTilePartDivisionsAtResolutions = e.target.checked;
+      encode(quantization);
+      // Get the encoded bytes and display them
+      const encodedBytes = encoder.getEncodedBuffer();
+      encodedBitStream = encodedBytes;
+      decode();
+    });
+    $('#setTilePartDivisionsAtComponentsSelector').change(function (e) {
+      setTilePartDivisionsAtComponents = e.target.checked;
       encode(quantization);
       // Get the encoded bytes and display them
       const encodedBytes = encoder.getEncodedBuffer();

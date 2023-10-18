@@ -42,6 +42,7 @@ EMSCRIPTEN_BINDINGS(FrameInfo) {
     .field("bitsPerSample", &FrameInfo::bitsPerSample)
     .field("componentCount", &FrameInfo::componentCount)
     .field("isSigned", &FrameInfo::isSigned)
+    .field("isUsingColorTransform", &FrameInfo::isUsingColorTransform)
        ;
 }
 
@@ -79,7 +80,6 @@ EMSCRIPTEN_BINDINGS(HTJ2KDecoder) {
     .function("getBlockDimensions", &HTJ2KDecoder::getBlockDimensions)
     .function("getPrecinct", &HTJ2KDecoder::getPrecinct)
     .function("getNumLayers", &HTJ2KDecoder::getNumLayers)
-    .function("getIsUsingColorTransform", &HTJ2KDecoder::getIsUsingColorTransform)
    ;
 }
 
@@ -90,6 +90,9 @@ EMSCRIPTEN_BINDINGS(HTJ2KEncoder) {
     .function("getEncodedBuffer", &HTJ2KEncoder::getEncodedBuffer)
     .function("encode", &HTJ2KEncoder::encode)
     .function("setDecompositions", &HTJ2KEncoder::setDecompositions)
+    .function("setTLMMarker", &HTJ2KEncoder::setTLMMarker)
+    .function("setTilePartDivisionsAtResolutions", &HTJ2KEncoder::setTilePartDivisionsAtResolutions)
+    .function("setTilePartDivisionsAtComponents", &HTJ2KEncoder::setTilePartDivisionsAtComponents)
     .function("setQuality", &HTJ2KEncoder::setQuality)
     .function("setProgressionOrder", &HTJ2KEncoder::setProgressionOrder)
     .function("setDownSample", &HTJ2KEncoder::setDownSample)
@@ -99,6 +102,5 @@ EMSCRIPTEN_BINDINGS(HTJ2KEncoder) {
     .function("setBlockDimensions", &HTJ2KEncoder::setBlockDimensions)
     .function("setNumPrecincts", &HTJ2KEncoder::setNumPrecincts)
     .function("setPrecinct", &HTJ2KEncoder::setPrecinct)
-    .function("setIsUsingColorTransform", &HTJ2KEncoder::setIsUsingColorTransform)
    ;
 }

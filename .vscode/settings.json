@@ -76,7 +76,11 @@
         "filesystem": "cpp",
         "memory_resource": "cpp",
         "cinttypes": "cpp",
-        "__functional_03": "cpp"
+        "__functional_03": "cpp",
+        "__verbose_abort": "cpp",
+        "charconv": "cpp",
+        "complex": "cpp",
+        "variant": "cpp"
     },
     "liveServer.settings.port": 5501,
     "editor.tokenColorCustomizations": {

@@ -36,6 +36,8 @@ function encode(pathToUncompressedImageFrame, imageFrame, pathToJ2CFile, iterati
     const decodedBytes = encoder.getDecodedBuffer(imageFrame);
     decodedBytes.set(uncompressedImageFrame);
     //encoder.setQuality(false, 0.001);
+    encoder.setTLMMarker(true);
+    encoder.setTilePartDivisionsAtResolutions(true);
   
     const encodeBegin = process.hrtime();
     for(var i=0; i < iterations;i++) {
@@ -60,7 +62,7 @@ openjphjs.onRuntimeInitialized = async _ => {
   decode('../fixtures/j2c/CT2.j2c');
   decode('../../extern/OpenJPH/subprojects/js/html/test.j2c');
 
-  encode('../fixtures/raw/CT1.RAW', {width: 512, height: 512, bitsPerSample: 16, componentCount: 1, isSigned: true}, '../fixtures/j2c/CT1.j2c');
+  encode('../fixtures/raw/CT1.RAW', {width: 512, height: 512, bitsPerSample: 16, componentCount: 1, isSigned: true, isUsingColorTransform: false}, '../fixtures/j2c/CT1.j2c');
   //encode('../fixtures/raw/CT2.RAW', {width: 512, height: 512, bitsPerSample: 16, componentCount: 1, isSigned: true}, '../fixtures/j2c/CT2.j2c');
   //encode('../fixtures/raw/MG1.RAW', {width: 3064, height: 4774, bitsPerSample: 16, componentCount: 1, isSigned: false}, '../fixtures/j2c/MG1.j2c');
   //encode('../fixtures/raw/MR1.RAW', {width: 512, height: 512, bitsPerSample: 16, componentCount: 1, isSigned: true}, '../fixtures/j2c/MR1.j2c');

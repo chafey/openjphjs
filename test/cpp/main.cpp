@@ -66,8 +66,10 @@ void sub_timespec(struct timespec t1, struct timespec t2, struct timespec *td)
 void decodeFile(const char *path, size_t iterations = 1)
 {
     HTJ2KDecoder decoder;
-    std::vector<uint8_t> &encodedBytes = decoder.getEncodedBytes();
+    std::vector<uint8_t> encodedBytes;
+    //std::vector<uint8_t> &encodedBytes = decoder.getEncodedBytes();
     readFile(path, encodedBytes);
+    decoder.setEncodedBytes(&encodedBytes);
 
     timespec start, finish, delta;
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
