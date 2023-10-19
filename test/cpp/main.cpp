@@ -129,6 +129,28 @@ int main(int argc, char **argv)
     // decodeFile("test/fixtures/j2c/CT2.j2c");
     // decodeFile("test/fixtures/j2c/MG1.j2c");
 
+    {
+        FrameInfo frameInfo;
+        frameInfo.width = 756;
+        frameInfo.height = 486;
+        frameInfo.bitsPerSample = 8;
+        frameInfo.componentCount = 3;
+        frameInfo.isSigned = false;
+        frameInfo.isUsingColorTransform = true;
+        encodeFile("test/fixtures/raw/VL1.RAW", frameInfo, "test/fixtures/j2c/VL1.j2c");
+    }
+    {
+        FrameInfo frameInfo;
+        frameInfo.width = 640;
+        frameInfo.height = 480;
+        frameInfo.bitsPerSample = 8;
+        frameInfo.componentCount = 3;
+        frameInfo.isSigned = false;
+        frameInfo.isUsingColorTransform = true;
+        encodeFile("test/fixtures/raw/US1.RAW", frameInfo, "test/fixtures/j2c/US1.j2c");
+    }
+
+
     // encodeFile("test/fixtures/raw/CT1.RAW", {.width = 512, .height = 512, .bitsPerSample = 16, .componentCount = 1, .isSigned = true}, "test/fixtures/j2c/CT1.j2c");
     return 0;
 }
