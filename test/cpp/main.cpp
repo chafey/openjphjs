@@ -128,7 +128,7 @@ int main(int argc, char **argv)
     decodeFile("test/fixtures/j2c/MG1.j2c", iterations);
     // decodeFile("test/fixtures/j2c/CT2.j2c");
     // decodeFile("test/fixtures/j2c/MG1.j2c");
-
+/*
     {
         FrameInfo frameInfo;
         frameInfo.width = 756;
@@ -149,8 +149,9 @@ int main(int argc, char **argv)
         frameInfo.isUsingColorTransform = true;
         encodeFile("test/fixtures/raw/US1.RAW", frameInfo, "test/fixtures/j2c/US1.j2c");
     }
+*/
 
-
-    // encodeFile("test/fixtures/raw/CT1.RAW", {.width = 512, .height = 512, .bitsPerSample = 16, .componentCount = 1, .isSigned = true}, "test/fixtures/j2c/CT1.j2c");
+    //encodeFile("test/fixtures/raw/CT1.RAW", {.width = 512, .height = 512, .bitsPerSample = 16, .componentCount = 1, .isSigned = true}, "test/fixtures/j2c/CT1.j2c");
+    encodeFile("test/fixtures/raw/38320-4k.RAW", {.width = 3840, .height = 2160, .bitsPerSample = 8, .componentCount = 3, .isSigned = false, .isUsingColorTransform=true}, "test/fixtures/j2c/38320-4k.j2c");
     return 0;
 }
