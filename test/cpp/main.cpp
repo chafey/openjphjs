@@ -84,10 +84,11 @@ void decodeFile(const char *path, size_t iterations = 1)
 
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &finish);
     sub_timespec(start, finish, &delta);
-    auto frameInfo = decoder.getFrameInfo();
 
     auto ns = delta.tv_sec * 1000000000.0 + delta.tv_nsec;
     auto totalTimeMS = ns / 1000000.0;
+
+    auto frameInfo = decoder.getFrameInfo();
     auto timePerFrameMS = ns / 1000000.0 / (double)iterations;
     auto pixels = (frameInfo.width * frameInfo.height);
     auto megaPixels = (double)pixels / (1024.0 * 1024.0);
@@ -110,7 +111,11 @@ void encodeFile(const char *inPath, const FrameInfo frameInfo, const char *outPa
 
     clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &finish);
     sub_timespec(start, finish, &delta);
-    const double ms = (double)(delta.tv_nsec) / 1000000.0;
+
+    auto ns = delta.tv_sec * 1000000000.0 + delta.tv_nsec;
+    auto totalTimeMS = ns / 1000000.0;
+
+    const double ms = totalTimeMS;
 
     printf("Encode of %s took %f ms\n", inPath, ms);
 
@@ -123,9 +128,11 @@ void encodeFile(const char *inPath, const FrameInfo frameInfo, const char *outPa
 
 int main(int argc, char **argv)
 {
-    const size_t iterations = (argc > 1) ? atoi(argv[1]) : 10;
+    const size_t iterations = (argc > 1) ? atoi(argv[1]) : 1;
     decodeFile("test/fixtures/j2c/CT1.j2c", iterations);
     decodeFile("test/fixtures/j2c/MG1.j2c", iterations);
+    decodeFile("test/fixtures/j2c/38320-4k.j2c", iterations);
+
     // decodeFile("test/fixtures/j2c/CT2.j2c");
     // decodeFile("test/fixtures/j2c/MG1.j2c");
 /*
@@ -152,6 +159,8 @@ int main(int argc, char **argv)
 */
 
     //encodeFile("test/fixtures/raw/CT1.RAW", {.width = 512, .height = 512, .bitsPerSample = 16, .componentCount = 1, .isSigned = true}, "test/fixtures/j2c/CT1.j2c");
-    encodeFile("test/fixtures/raw/38320-4k.RAW", {.width = 3840, .height = 2160, .bitsPerSample = 8, .componentCount = 3, .isSigned = false, .isUsingColorTransform=true}, "test/fixtures/j2c/38320-4k.j2c");
+    //encodeFile("test/fixtures/raw/38320-4k.RAW", {.width = 3840, .height = 2160, .bitsPerSample = 8, .componentCount = 3, .isSigned = false, .isUsingColorTransform=true}, "test/fixtures/j2c/38320-4k.j2c");
+    //encodeFile("../tiffextract/38320.RAW", {.width = 17515, .height = 14440, .bitsPerSample = 8, .componentCount = 3, .isSigned = false, .isUsingColorTransform=true}, "test/fixtures/j2c/38320.j2c");
+
     return 0;
 }

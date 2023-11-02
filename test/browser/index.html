@@ -40,12 +40,14 @@ SPDX-License-Identifier: MIT
           <option value="../../test/fixtures/j2c/VL1.j2c">VL1</option>
           <option value="../../test/fixtures/j2c/38320-4k.j2c">Digital Path 3840x2160</option>
         </select>
+        <label><input id="progressive" type="checkbox" value="">Progressive</label>
         <button id="benchmark">Benchmark</button>
         <span>Status:</span><span id="status"></span>
       </div>
       <div class="row">
         <label><input id="visualizeDeltas" type="checkbox" value="">Visualize Deltas</label>
       </div>
+
     </div>
     <div class="row">
       <div class="col-md-12">
@@ -198,6 +200,8 @@ SPDX-License-Identifier: MIT
   let setTilePartDivisionsAtComponents = false;
   let setTilePartDivisionsAtResolutions = false;
   let blockDimensions = 64;
+  let progressive = 0;
+  let urlPath = '';
 
   var makeCRCTable = function(){
     var c;
@@ -506,8 +510,19 @@ var calccrc32 = function(str) {
     $('#encodeTime').text((timePerFrame).toFixed(2) + ' ms (' + mps.toFixed(2) + " MP/s; " + fps.toFixed(0) + " fps)");
   }
 
+  $('#progressive').change(function (e) {
+    progressive = $('#progressive').is(":checked");
+    reset();
+    load(urlPath);
+  })
+
   function load(url) {
-    fetch(url)
+    urlPath = url
+    if(progressive) {
+      loadProgressive(url)
+      return;
+    } else {
+      fetch(url)
       .then((response) => {
         return response.arrayBuffer();
       })
@@ -527,7 +542,59 @@ var calccrc32 = function(str) {
       }).catch(function () {
         $('#status').text('error loading ' + url);
       });
+    }
   }
+
+  function concatTypedArrays(a, b) { // a, b TypedArray of same type
+    var c = new (a.constructor)(a.length + b.length);
+    c.set(a, 0);
+    c.set(b, a.length);
+    return c;
+}
+
+  async function loadProgressive(url) {
+
+    fullEncodedBitStream = new Uint8Array()
+
+    try {
+      const response = await fetch(url)
+      const reader = response.body.getReader();
+      while (true) {
+        const {value, done} = await reader.read();
+        if (done) break;
+        fullEncodedBitStream = concatTypedArrays(fullEncodedBitStream, value)
+        encodedBitStream = new Uint8Array(fullEncodedBitStream.buffer);
+        $('#encodedBytesRead').text('' + encodedBitStream.length.toLocaleString() + ' bytes');
+        $('#encodedBytesReadRange').attr('max', encodedBitStream.length - 1);
+        decode();
+        uncompressedImageFrame = new Uint8Array(decoder.getDecodedBuffer().length);
+        uncompressedImageFrame.set(decoder.getDecodedBuffer());
+      }
+    }
+    catch(ex) {
+      $('#status').text('Exception thrown ' + ex);
+    }
+    
+
+      /*
+      .then((arrayBuffer) => {
+        try {
+          fullEncodedBitStream = new Uint8Array(arrayBuffer);
+          encodedBitStream = new Uint8Array(arrayBuffer);
+          $('#encodedBytesRead').text('' + encodedBitStream.length.toLocaleString() + ' bytes');
+          $('#encodedBytesReadRange').attr('max', encodedBitStream.length - 1);
+          decode();
+          uncompressedImageFrame = new Uint8Array(decoder.getDecodedBuffer().length);
+          uncompressedImageFrame.set(decoder.getDecodedBuffer());
+        }
+        catch (ex) {
+          $('#status').text('Exception thrown while parsing ' + ex);
+        }
+      }).catch(function () {
+        $('#status').text('error loading ' + url);
+      });*/
+  }
+
 
   function reset() {
     decodeLevel = 0;
