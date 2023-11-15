@@ -466,7 +466,7 @@ var calccrc32 = function(str) {
 
     let subResolutions = '';
     for (let i = 0; i < decoder.getNumDecompositions(); i++) {
-      const resolution = decoder.calculateSizeAtDecompositionLevel(i);
+      const resolution = decoder.calculateSizeAtDecompositionLevel(i+1);
       subResolutions += resolution.width + 'x' + resolution.height + ' ';
     }
     $('#subResolutions').text('' + subResolutions);
